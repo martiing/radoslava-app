@@ -29,7 +29,7 @@ export const siteConfig = {
     startDate: "1 септември 2026",
     registrationDeadline: "25 август 2026",
     price: "197 лв.",
-    photoSrc: null,
+    photoSrc: "/images/hero.jpg",
   },
   painPoints: {
     heading: "Познаваш ли това усещане?",

@@ -16,11 +16,11 @@ export function ClientResults() {
           <SectionIcon icon={Trophy} />
           <h2
             id="client-results-heading"
-            className="font-display text-3xl font-semibold text-foreground sm:text-4xl"
+            className="w-full font-display text-3xl font-semibold text-foreground sm:text-4xl"
           >
             {clientResults.heading}
           </h2>
-          <p className="mt-4 text-lg text-muted">{clientResults.intro}</p>
+          <p className="mt-4 w-full text-lg text-muted">{clientResults.intro}</p>
         </div>
       </RevealOnScroll>
 

@@ -46,10 +46,13 @@ export function RegistrationForm() {
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={NotebookPen} />
-          <h2 id="registration-heading" className="font-display text-3xl font-semibold text-foreground sm:text-4xl">
+          <h2
+            id="registration-heading"
+            className="w-full font-display text-3xl font-semibold text-foreground sm:text-4xl"
+          >
             {registration.heading}
           </h2>
-          <p className="mt-4 text-lg text-muted">{registration.intro}</p>
+          <p className="mt-4 w-full text-lg text-muted">{registration.intro}</p>
         </div>
 
         <div className="mx-auto mt-10 max-w-2xl rounded-[2rem] border border-white/70 bg-surface/70 p-8 shadow-xl shadow-accent/5 backdrop-blur-xl sm:p-10">
@@ -58,7 +61,7 @@ export function RegistrationForm() {
               <span className="animate-fade-up flex h-14 w-14 items-center justify-center rounded-full bg-lime/30 text-accent-hover">
                 <Check aria-hidden="true" className="h-7 w-7" strokeWidth={2.5} />
               </span>
-              <p className="text-lg font-medium text-foreground">{registration.successMessage}</p>
+              <p className="w-full text-lg font-medium text-foreground">{registration.successMessage}</p>
             </div>
           ) : (
             <form action={formAction} noValidate className="flex flex-col gap-6">

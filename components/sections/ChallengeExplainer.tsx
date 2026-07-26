@@ -12,10 +12,10 @@ export function ChallengeExplainer() {
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={CalendarDays} tone="inverted" />
-          <h2 id="challenge-heading" className="font-display text-3xl font-semibold text-white sm:text-4xl">
+          <h2 id="challenge-heading" className="w-full font-display text-3xl font-semibold text-white sm:text-4xl">
             {challenge.heading}
           </h2>
-          <p className="mt-4 text-lg text-white/70">{challenge.intro}</p>
+          <p className="mt-4 w-full text-lg text-white/70">{challenge.intro}</p>
         </div>
       </RevealOnScroll>
 

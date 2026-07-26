@@ -9,15 +9,15 @@ export function LimitedSpots() {
   const { limitedSpots } = siteConfig;
 
   return (
-    <SectionContainer id="limited-spots" headingId="limited-spots-heading">
+    <SectionContainer id="limited-spots" headingId="limited-spots-heading" tone="dark">
       <RevealOnScroll>
-        <div className="mx-auto flex max-w-2xl flex-col items-center rounded-[1.75rem] border border-white/70 bg-surface/80 p-8 text-center shadow-sm backdrop-blur-xl sm:p-12">
+        <div className="mx-auto flex max-w-2xl flex-col items-center rounded-[1.75rem] border border-white/70 bg-surface/95 p-8 text-center shadow-2xl sm:p-12">
           <SectionIcon icon={Hourglass} />
-          <h2 id="limited-spots-heading" className="font-display text-3xl font-semibold text-foreground">
+          <h2 id="limited-spots-heading" className="w-full font-display text-3xl font-semibold text-foreground">
             {limitedSpots.heading}
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-muted">{limitedSpots.reasonText}</p>
-          <div className="mt-6 flex flex-col gap-1 text-sm font-medium text-foreground">
+          <p className="mt-4 w-full text-lg leading-relaxed text-muted">{limitedSpots.reasonText}</p>
+          <div className="mt-6 flex w-full flex-col gap-1 text-sm font-medium text-foreground">
             <p>{limitedSpots.registrationDeadline}</p>
             <p>{limitedSpots.capacity}</p>
           </div>

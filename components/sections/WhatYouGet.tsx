@@ -12,13 +12,13 @@ export function WhatYouGet() {
   const { whatYouGet } = siteConfig;
 
   return (
-    <SectionContainer id="what-you-get" headingId="what-you-get-heading" tone="tint">
+    <SectionContainer id="what-you-get" headingId="what-you-get-heading">
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={Gift} />
           <h2
             id="what-you-get-heading"
-            className="font-display text-3xl font-semibold text-foreground sm:text-4xl"
+            className="w-full font-display text-3xl font-semibold text-foreground sm:text-4xl"
           >
             {whatYouGet.heading}
           </h2>

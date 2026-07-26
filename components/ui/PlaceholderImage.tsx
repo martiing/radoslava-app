@@ -10,6 +10,7 @@ interface PlaceholderImageProps {
   sizes?: string;
   priority?: boolean;
   className?: string;
+  rounded?: string;
 }
 
 export function PlaceholderImage({
@@ -20,11 +21,13 @@ export function PlaceholderImage({
   sizes = "(min-width: 768px) 33vw, 100vw",
   priority = false,
   className,
+  rounded = "rounded-2xl",
 }: PlaceholderImageProps) {
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden rounded-2xl",
+        "relative w-full overflow-hidden",
+        rounded,
         !src &&
           "flex items-center justify-center border-2 border-dashed border-accent/25 bg-gradient-to-br from-accent-soft via-surface to-lime/15",
         className

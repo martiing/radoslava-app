@@ -40,17 +40,17 @@ export function BmiCalculator() {
     : 0;
 
   return (
-    <SectionContainer id="bmi-calculator" headingId="bmi-calculator-heading" tone="tint">
+    <SectionContainer id="bmi-calculator" headingId="bmi-calculator-heading">
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={Scale} />
           <h2
             id="bmi-calculator-heading"
-            className="font-display text-3xl font-semibold text-foreground sm:text-4xl"
+            className="w-full font-display text-3xl font-semibold text-foreground sm:text-4xl"
           >
             Провери своя ИТМ
           </h2>
-          <p className="mt-4 text-lg text-muted">
+          <p className="mt-4 w-full text-lg text-muted">
             Индекс на телесна маса (ИТМ) е бърз ориентировъчен показател — не диагноза. Използвай го само
             като отправна точка.
           </p>

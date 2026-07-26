@@ -12,10 +12,13 @@ export function PainPoints() {
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={Frown} />
-          <h2 id="pain-points-heading" className="font-display text-3xl font-semibold text-foreground sm:text-4xl">
+          <h2
+            id="pain-points-heading"
+            className="w-full font-display text-3xl font-semibold text-foreground sm:text-4xl"
+          >
             {painPoints.heading}
           </h2>
-          <p className="mt-4 text-lg text-muted">{painPoints.intro}</p>
+          <p className="mt-4 w-full text-lg text-muted">{painPoints.intro}</p>
         </div>
       </RevealOnScroll>
 

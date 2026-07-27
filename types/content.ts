@@ -118,5 +118,11 @@ export interface SiteConfig {
     privacyPolicyHref: string;
     termsHref: string;
     medicalDisclaimer: string;
+    /**
+     * ISO date of the current privacy policy. Stored alongside every lead so
+     * you can prove which version of the policy a person actually agreed to.
+     * Bump it whenever the policy text changes materially.
+     */
+    privacyPolicyVersion: string;
   };
 }

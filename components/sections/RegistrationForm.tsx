@@ -10,6 +10,7 @@ import { FormField } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
 import { registerAction, type RegisterFormState } from "@/app/actions/register";
+import { QuizForm } from "@/components/sections/QuizForm";
 
 const initialState: RegisterFormState = { status: "idle" };
 
@@ -56,7 +57,17 @@ export function RegistrationForm() {
         </div>
 
         <div className="mx-auto mt-10 max-w-2xl rounded-[2rem] border border-white/70 bg-surface/70 p-8 shadow-xl shadow-accent/5 backdrop-blur-xl sm:p-10">
-          {isSuccess ? (
+          {isSuccess && state.participantId ? (
+            <>
+              <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
+                <span className="animate-fade-up flex h-14 w-14 items-center justify-center rounded-full bg-lime/30 text-accent-hover">
+                  <Check aria-hidden="true" className="h-7 w-7" strokeWidth={2.5} />
+                </span>
+                <p className="w-full text-lg font-medium text-foreground">{registration.successMessage}</p>
+              </div>
+              <QuizForm participantId={state.participantId} />
+            </>
+          ) : isSuccess ? (
             <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
               <span className="animate-fade-up flex h-14 w-14 items-center justify-center rounded-full bg-lime/30 text-accent-hover">
                 <Check aria-hidden="true" className="h-7 w-7" strokeWidth={2.5} />

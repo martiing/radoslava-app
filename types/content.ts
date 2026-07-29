@@ -102,6 +102,15 @@ export interface SiteConfig {
     privacyLabel: string;
     submitLabel: string;
   };
+  quiz: {
+    heading: string;
+    intro: string;
+    nextLabel: string;
+    backLabel: string;
+    submitLabel: string;
+    successMessage: string;
+    skipNote: string;
+  };
   faq: {
     heading: string;
     items: FaqItem[];

@@ -4,7 +4,7 @@ interface FormFieldProps {
   id: string;
   name: string;
   label: string;
-  type?: "text" | "email" | "tel";
+  type?: "text" | "email" | "tel" | "number";
   autoComplete?: string;
   required?: boolean;
   error?: string;

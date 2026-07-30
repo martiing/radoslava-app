@@ -3,6 +3,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { quizSchema, type QuizFieldErrors } from "@/lib/validation/quiz-schema";
 import { computeGoalRealism } from "@/lib/quiz/scoring";
+import { getTrainingTrack } from "@/lib/plan/assignment";
 import { getResendClient, EMAIL_FROM } from "@/lib/resend/client";
 import { buildPersonalizedWelcomeEmail } from "@/lib/email/templates";
 import { siteConfig } from "@/content/site-config";
@@ -25,6 +26,7 @@ export async function submitQuizAction(
     targetWeightKg: formData.get("targetWeightKg") || undefined,
     activityLevel: formData.get("activityLevel"),
     weeklyCommitment: formData.get("weeklyCommitment"),
+    trainingTrack: formData.get("trainingTrack"),
     primaryFocus: formData.get("primaryFocus"),
     hasLimitations: formData.get("hasLimitations"),
     limitationsNote: formData.get("limitationsNote") || undefined,
@@ -55,6 +57,7 @@ export async function submitQuizAction(
     targetWeightKg: data.targetWeightKg,
     activityLevel: data.activityLevel,
     weeklyCommitment: data.weeklyCommitment,
+    trainingTrack: data.trainingTrack,
     primaryFocus: data.primaryFocus,
     hasLimitations: data.hasLimitations === "yes",
     limitationsNote: data.limitationsNote,
@@ -102,8 +105,10 @@ export async function submitQuizAction(
       const resend = getResendClient();
       const email = buildPersonalizedWelcomeEmail({
         name: participant.name,
+        goal: answers.goal,
         goalRealism,
         primaryFocus: answers.primaryFocus,
+        trainingTrack: getTrainingTrack(answers),
         hasLimitations: answers.hasLimitations,
       });
 

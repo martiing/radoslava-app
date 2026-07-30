@@ -29,6 +29,18 @@ export const STAGE_LABELS: Record<ParticipantStage, string> = {
   cancelled: "Отказала се",
 };
 
+/** Tailwind classes per stage, ordered roughly cold -> warm -> done, so the pipeline reads at a glance. */
+export const STAGE_COLORS: Record<ParticipantStage, string> = {
+  registered: "bg-neutral-100 text-neutral-600",
+  quiz_completed: "bg-sky-100 text-sky-700",
+  emailed: "bg-indigo-100 text-indigo-700",
+  messaged_viber: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  added_to_group: "bg-green-100 text-green-800",
+  completed: "bg-violet-100 text-violet-700",
+  cancelled: "bg-red-100 text-red-700",
+};
+
 export const GOAL_REALISM_LABELS: Record<string, string> = {
   realistic: "Реалистична",
   ambitious: "Амбициозна",

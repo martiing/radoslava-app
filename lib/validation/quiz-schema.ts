@@ -23,6 +23,9 @@ export const quizSchema = z
       .int()
       .min(1, "Моля, избери стойност между 1 и 5.")
       .max(5, "Моля, избери стойност между 1 и 5."),
+    trainingTrack: z.enum(["gym", "home"], {
+      message: "Моля, избери къде ще тренираш.",
+    }),
     primaryFocus: z.enum(["nutrition", "training", "accountability", "mindset"], {
       message: "Моля, избери къде имаш най-голяма нужда от помощ.",
     }),

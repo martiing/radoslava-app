@@ -194,6 +194,10 @@ export const siteConfig = {
     body: "Нужно е да направиш първата правилна стъпка.",
     ctaLabel: "Запази своето място",
   },
+  viberContact: {
+    phoneDisplay: "0896 273 376",
+    deepLink: "viber://chat?number=%2B359896273376",
+  },
   footer: {
     projectName: "Едномесечно предизвикателство с Радослава",
     contactEmail: "hello@radoslava.fit",

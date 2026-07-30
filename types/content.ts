@@ -120,6 +120,12 @@ export interface SiteConfig {
     body: string;
     ctaLabel: string;
   };
+  viberContact: {
+    /** Local display format, e.g. "0896 273 376". */
+    phoneDisplay: string;
+    /** viber://chat deep link straight to Radoslava's contact. */
+    deepLink: string;
+  };
   footer: {
     projectName: string;
     contactEmail: string;

@@ -1,118 +1,111 @@
 import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { STAGE_LABELS, GOAL_REALISM_LABELS, type ParticipantStage } from "@/lib/admin/stages";
+import { STAGE_LABELS, STAGE_ORDER, type ParticipantStage } from "@/lib/admin/stages";
 
 export const dynamic = "force-dynamic";
 
-interface ParticipantRow {
+interface DashboardParticipant {
   id: string;
   name: string;
-  email: string;
-  phone: string;
   stage: ParticipantStage;
   goal_realism: string | null;
   goal_realism_override: string | null;
-  created_at: string;
+  has_limitations: boolean;
 }
 
-export default async function AdminParticipantsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ stage?: string }>;
-}) {
-  const { stage: stageFilter } = await searchParams;
+export default async function AdminDashboardPage() {
   const supabase = getSupabaseServerClient();
-
-  let query = supabase
+  const { data: participants, error } = await supabase
     .from("participants")
-    .select("id, name, email, phone, stage, goal_realism, goal_realism_override, created_at")
-    .order("created_at", { ascending: false });
-
-  if (stageFilter) {
-    query = query.eq("stage", stageFilter);
-  }
-
-  const { data: participants, error } = await query;
+    .select("id, name, stage, goal_realism, goal_realism_override, has_limitations");
 
   if (error) {
     return <p className="text-red-600">Грешка при зареждане: {error.message}</p>;
   }
 
-  const rows = (participants ?? []) as ParticipantRow[];
+  const rows = (participants ?? []) as DashboardParticipant[];
+  const total = rows.length;
+
+  const counts: Record<ParticipantStage, number> = {
+    registered: 0,
+    quiz_completed: 0,
+    emailed: 0,
+    messaged_viber: 0,
+    paid: 0,
+    added_to_group: 0,
+    completed: 0,
+    cancelled: 0,
+  };
+  for (const row of rows) counts[row.stage] += 1;
+
+  // Funnel counts are cumulative: everyone at a later stage also passed
+  // through every earlier one, so "paid" should include "added_to_group" etc.
+  const cumulativeCounts: Record<ParticipantStage, number> = { ...counts };
+  for (let i = STAGE_ORDER.length - 2; i >= 0; i -= 1) {
+    cumulativeCounts[STAGE_ORDER[i]] += cumulativeCounts[STAGE_ORDER[i + 1]];
+  }
+
+  const needsAttention = rows.filter((row) => {
+    const realism = row.goal_realism_override ?? row.goal_realism;
+    return realism === "unrealistic" || row.has_limitations;
+  });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Участнички ({rows.length})</h1>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/admin" className={!stageFilter ? "font-semibold underline" : "text-neutral-500"}>
-            Всички
-          </Link>
-          {Object.entries(STAGE_LABELS).map(([stage, label]) => (
-            <Link
-              key={stage}
-              href={`/admin?stage=${stage}`}
-              className={stageFilter === stage ? "font-semibold underline" : "text-neutral-500"}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-xl font-semibold">Табло</h1>
+        <p className="text-sm text-neutral-500">{total} участнички общо · {counts.cancelled} отказали се</p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-neutral-200 bg-neutral-50 text-neutral-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Име</th>
-              <th className="px-4 py-3 font-medium">Контакт</th>
-              <th className="px-4 py-3 font-medium">Статус</th>
-              <th className="px-4 py-3 font-medium">Оценка на целта</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {rows.map((participant) => (
-              <tr key={participant.id} className="hover:bg-neutral-50">
-                <td className="px-4 py-3">
-                  <Link href={`/admin/participants/${participant.id}`} className="font-medium hover:underline">
-                    {participant.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-neutral-500">
-                  <div>{participant.email}</div>
-                  <div>{participant.phone}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium">
-                    {STAGE_LABELS[participant.stage] ?? participant.stage}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {(() => {
-                    const realism = participant.goal_realism_override ?? participant.goal_realism;
-                    if (!realism) return <span className="text-neutral-400">—</span>;
-                    return (
-                      <span>
-                        {GOAL_REALISM_LABELS[realism] ?? realism}
-                        {participant.goal_realism_override && (
-                          <span className="ml-1 text-xs text-neutral-400">(коригирано)</span>
-                        )}
-                      </span>
-                    );
-                  })()}
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-neutral-400">
-                  Няма участнички в тази категория.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-neutral-700">Фуния на регистрациите</h2>
+        <div className="mt-4 flex flex-col gap-3">
+          {STAGE_ORDER.map((stage) => {
+            const count = cumulativeCounts[stage];
+            const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+            return (
+              <Link
+                key={stage}
+                href={`/admin/participants?stage=${stage}`}
+                className="flex items-center gap-4 text-sm hover:opacity-80"
+              >
+                <span className="w-40 shrink-0 text-neutral-600">{STAGE_LABELS[stage]}</span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                  <span className="block h-full rounded-full bg-accent" style={{ width: `${percent}%` }} />
+                </span>
+                <span className="w-16 shrink-0 text-right font-medium">
+                  {count} <span className="text-neutral-400">({percent}%)</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-neutral-700">Изисква внимание ({needsAttention.length})</h2>
+        <p className="mt-1 text-xs text-neutral-500">
+          Нереалистична цел или здравословни ограничения — препоръчително е личен последващ контакт.
+        </p>
+        <ul className="mt-4 flex flex-col divide-y divide-neutral-100">
+          {needsAttention.map((row) => (
+            <li key={row.id} className="flex items-center justify-between py-2 text-sm">
+              <Link href={`/admin/participants/${row.id}`} className="font-medium hover:underline">
+                {row.name}
+              </Link>
+              <span className="flex gap-2 text-xs text-neutral-500">
+                {(row.goal_realism_override ?? row.goal_realism) === "unrealistic" && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">Нереалистична цел</span>
+                )}
+                {row.has_limitations && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">Ограничения</span>
+                )}
+              </span>
+            </li>
+          ))}
+          {needsAttention.length === 0 && <li className="py-2 text-sm text-neutral-400">Няма за момента.</li>}
+        </ul>
+      </section>
     </div>
   );
 }

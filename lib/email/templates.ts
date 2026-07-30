@@ -1,5 +1,5 @@
 import { siteConfig } from "@/content/site-config";
-import type { GoalRealism, PrimaryFocus } from "@/types/quiz";
+import type { GoalRealism, PrimaryFocus, QuizGoal, TrainingTrack } from "@/types/quiz";
 
 interface EmailContent {
   subject: string;
@@ -16,10 +16,18 @@ const COLORS = {
   border: "#e8d5c2",
 };
 
-function wrapEmailHtml(bodyHtml: string): string {
+function wrapEmailHtml(bodyHtml: string, preheader?: string): string {
+  // Hidden preheader: the snippet inbox clients show next to the subject
+  // line. The trailing whitespace entities pad it so the client doesn't
+  // fall through into rendering the visible body as the preview instead.
+  const preheaderHtml = preheader
+    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}${"&nbsp;&zwnj;".repeat(40)}</div>`
+    : "";
+
   return `<!doctype html>
 <html lang="bg">
   <body style="margin:0;padding:32px 16px;background:${COLORS.background};font-family:Helvetica,Arial,sans-serif;color:${COLORS.ink};">
+    ${preheaderHtml}
     <table role="presentation" width="100%" style="max-width:480px;margin:0 auto;border-collapse:collapse;">
       <tr>
         <td style="padding-bottom:24px;">
@@ -131,55 +139,63 @@ export function buildAdminNotificationEmail(lead: LeadInfo): EmailContent {
 
 interface PersonalizedWelcomeInput {
   name: string;
+  goal: QuizGoal;
   goalRealism: GoalRealism;
   primaryFocus: PrimaryFocus;
+  trainingTrack: TrainingTrack;
   hasLimitations: boolean;
 }
 
-const GOAL_REALISM_COPY: Record<GoalRealism, { heading: string; body: string }> = {
-  realistic: {
-    heading: "Целта ти е напълно постижима",
-    body: "Това, което си споделила, е реалистично за един месец, ако следваш плана последователно. Ще имаш нужната структура и подкрепа, за да го направиш.",
-  },
-  ambitious: {
-    heading: "Амбициозна, но възможна цел",
-    body: "Целта ти изисква сериозна последователност. Ще се фокусираме върху устойчив напредък всяка седмица — дори частичен резултат след месец е солидна основа за продължение.",
-  },
-  unrealistic: {
-    heading: "Нека изравним очакванията",
-    body: "Резултатът, който описа, обичайно отнема повече от месец при здравословен темп. Радослава лично ще се свърже с теб, за да поставите заедно реалистична междинна цел за периода на предизвикателството.",
-  },
+const GOAL_COPY: Record<QuizGoal, string> = {
+  weight_loss:
+    "Виждам, че основната ти цел е отслабване — ще заложим на устойчив хранителен подход, а не на краткотрайни ограничения.",
+  tone_and_shape:
+    "Целта ти е да оформиш тялото си — комбинираме силови елементи с внимание към детайла, за да усетиш разликата в рамките на месеца.",
+  strength: "Искаш да станеш по-силна и издръжлива — тренировъчната част ще бъде водеща в твоя план.",
+  energy_habits:
+    "Търсиш повече енергия и по-добри навици — фокусът е върху малки, устойчиви промени, които се усещат бързо.",
+  general_health:
+    "Целта ти е общо здраве и самочувствие — изграждаме баланс между хранене, движение и почивка.",
 };
 
-const PRIMARY_FOCUS_COPY: Record<PrimaryFocus, { heading: string; body: string }> = {
-  nutrition: {
-    heading: "Ще заложим на храненето",
-    body: "Твоят хранителен план ще е основният инструмент през месеца, съобразен с нивото ти на персонализация.",
-  },
-  training: {
-    heading: "Ще заложим на тренировките",
-    body: "Ще получиш ясна тренировъчна структура, съобразена с твоето ниво, без излишна сложност.",
-  },
-  accountability: {
-    heading: "Ще заложим на подкрепата",
-    body: "Затворената Viber група и седмичните срещи ще ти дават нужната отговорност, за да не се откажеш по средата.",
-  },
-  mindset: {
-    heading: "Ще заложим на нагласата",
-    body: "Q&A сесиите и подкрепата от екипа ще са насочени към изграждане на увереност и устойчива мотивация.",
-  },
+// Softened relative to the mid-program tone used elsewhere: this version
+// runs before payment, so "unrealistic" reassures rather than corrects.
+const GOAL_REALISM_COPY: Record<GoalRealism, string> = {
+  realistic:
+    "Това, което описа, е напълно постижимо за един месец, ако следваш плана последователно — точно затова изградих структурата така, че да не разчиташ само на мотивация.",
+  ambitious:
+    "Целта ти е амбициозна, но възможна с последователност. Ще се фокусираме върху устойчив напредък всяка седмица — дори частичен резултат след месец е солидна основа за продължение.",
+  unrealistic:
+    "Искам да съм честна с теб: резултатът, който описа, обикновено отнема повече от месец при здравословен темп. Това не значи, че месецът няма да има стойност — ще поставим заедно реалистична междинна цел, върху която да стъпиш. Ще го обсъдим лично, щом се чуем във Viber.",
+};
+
+const PRIMARY_FOCUS_COPY: Record<PrimaryFocus, string> = {
+  nutrition: "Тъй като посочи, че имаш най-голяма нужда от помощ с храненето, хранителният план ще е основният инструмент през месеца.",
+  training: "Тъй като посочи, че имаш най-голяма нужда от помощ с тренировките, тренировъчната структура ще е водещата част от плана ти.",
+  accountability:
+    "Тъй като посочи, че имаш най-голяма нужда от подкрепа и отговорност, затворената Viber група ще е точно за това — хора около теб, пред които да си отговорна, и седмични срещи, на които да свериш напредъка си.",
+  mindset:
+    "Тъй като посочи, че имаш най-голяма нужда от помощ с нагласата, Q&A сесиите и подкрепата от екипа ще са насочени към изграждане на увереност и устойчива мотивация.",
+};
+
+const TRAINING_TRACK_COPY: Record<TrainingTrack, string> = {
+  gym: "Тъй като ще тренираш във фитнес залата, тренировъчната част е съобразена с наличното там оборудване.",
+  home: "Тъй като ще тренираш вкъщи, тренировъчната част е адаптирана за минимално оборудване, без да губи ефективност.",
 };
 
 /**
- * Personalized welcome email sent right after the registration quiz. Reuses
- * the shared HTML layout/colors, but the goal-realism and focus-area blocks
- * are dynamic per participant, based on her quiz answers.
+ * Sent right after the registration quiz, before payment/Viber. Reuses the
+ * shared HTML layout/colors; the goal, realism, focus and training-track
+ * blocks are dynamic per participant. The single call to action is the
+ * Viber deep link — no payment details go out until she's messaged there.
  */
 export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeInput): EmailContent {
-  const { hero, whatYouGet, footer } = siteConfig;
+  const { hero, whatYouGet, footer, viberContact } = siteConfig;
   const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
-  const realism = GOAL_REALISM_COPY[participant.goalRealism];
-  const focus = PRIMARY_FOCUS_COPY[participant.primaryFocus];
+  const goalLine = GOAL_COPY[participant.goal];
+  const realismLine = GOAL_REALISM_COPY[participant.goalRealism];
+  const focusLine = PRIMARY_FOCUS_COPY[participant.primaryFocus];
+  const trackLine = TRAINING_TRACK_COPY[participant.trainingTrack];
 
   const benefitsHtml = whatYouGet.benefits
     .map(
@@ -195,18 +211,18 @@ export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeIn
     ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:${COLORS.muted};">${footer.medicalDisclaimer}</p>`
     : "";
 
-  const html = wrapEmailHtml(`
+  const html = wrapEmailHtml(
+    `
     <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Здравей, ${firstName}!</h1>
     <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">
-      Благодарим ти, че отдели време за въпросите ни — вече можем да персонализираме опита ти в
-      <strong>„${hero.eyebrow}“</strong>.
+      Записването ти за <strong>„${hero.eyebrow}“</strong> е при мен, заедно с всичко, което сподели във
+      въпросника. Отделих време да прочета отговорите ти лично.
     </p>
 
-    <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;">${realism.heading}</h2>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${realism.body}</p>
-
-    <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;">${focus.heading}</h2>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${focus.body}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${goalLine}</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${realismLine}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${focusLine}</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${trackLine}</p>
     ${limitationsHtml}
 
     <h2 style="margin:24px 0 8px;font-size:17px;font-weight:700;">Какво получаваш за ${hero.price}</h2>
@@ -214,45 +230,75 @@ export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeIn
       ${benefitsHtml}
     </table>
 
-    <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;">Следващи стъпки</h2>
-    <p style="margin:0;font-size:15px;line-height:1.6;color:${COLORS.muted};">
-      1. Добави Радослава във Viber.<br />
-      2. Изпрати съобщение „Искам да участвам“.<br />
-      3. Ще получиш данни за плащане (Revolut).<br />
-      4. След потвърдено плащане те добавяме в затворената Viber група с останалите участнички.
+    <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;">Какво следва оттук</h2>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:${COLORS.muted};">
+      1. Добавяш Радослава във Viber.<br />
+      2. Изпращаш съобщение: „Искам да участвам“.<br />
+      3. Получаваш данните за плащане (Revolut).<br />
+      4. След потвърдено плащане те добавям в затворената група с останалите участнички.
     </p>
 
-    <p style="margin:20px 0 0;font-size:14px;line-height:1.6;color:${COLORS.muted};">
-      Въпроси? Просто отговори на този имейл или пиши на
+    <div style="text-align:center;margin:0 0 24px;">
+      <a
+        href="${viberContact.deepLink}"
+        style="display:inline-block;background:${COLORS.accent};color:#ffffff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;text-decoration:none;"
+      >
+        Пиши ми във Viber
+      </a>
+    </div>
+
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:${COLORS.muted};">
+      Ако имаш въпроси, преди да платиш каквото и да е — попитай ме директно във Viber. Предпочитам да
+      изясним всичко сега, отколкото да имаш съмнения по-късно.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;line-height:1.6;">До скоро,<br />Радослава</p>
+
+    <p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:${COLORS.muted};border-top:1px solid ${COLORS.border};padding-top:16px;">
+      П.С. Мястото ти не е официално запазено, докато не потвърдим плащането във Viber — така че ако си
+      решила да участваш, следващата стъпка е едно кратко съобщение, не повече.
+    </p>
+
+    <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:${COLORS.muted};">
+      Въпроси по имейл? Пиши на
       <a href="mailto:${footer.contactEmail}" style="color:${COLORS.accent};">${footer.contactEmail}</a>.
     </p>
-  `);
+  `,
+    "Видях какво написа във въпросника — ето какво мисля и какво следва."
+  );
 
   const text = `Здравей, ${firstName}!
 
-Благодарим ти, че отдели време за въпросите ни — вече можем да персонализираме опита ти в „${hero.eyebrow}“.
+Записването ти за „${hero.eyebrow}“ е при мен, заедно с всичко, което сподели във въпросника. Отделих време да прочета отговорите ти лично.
 
-${realism.heading}
-${realism.body}
+${goalLine}
+${realismLine}
 
-${focus.heading}
-${focus.body}
+${focusLine}
+${trackLine}
 ${participant.hasLimitations ? `\n${footer.medicalDisclaimer}\n` : ""}
 Какво получаваш за ${hero.price}:
 ${whatYouGet.benefits.map((benefit) => `- ${benefit.title}: ${benefit.description}`).join("\n")}
 
-Следващи стъпки:
-1. Добави Радослава във Viber.
-2. Изпрати съобщение „Искам да участвам“.
-3. Ще получиш данни за плащане (Revolut).
-4. След потвърдено плащане те добавяме в затворената Viber група с останалите участнички.
+Какво следва оттук:
+1. Добавяш Радослава във Viber: ${viberContact.deepLink}
+2. Изпращаш съобщение: „Искам да участвам“.
+3. Получаваш данните за плащане (Revolut).
+4. След потвърдено плащане те добавям в затворената група с останалите участнички.
 
-Въпроси? Пиши на ${footer.contactEmail}.
+Ако имаш въпроси, преди да платиш каквото и да е — попитай ме директно във Viber.
+
+До скоро,
+Радослава
+
+П.С. Мястото ти не е официално запазено, докато не потвърдим плащането във Viber — така че ако си решила да участваш, следващата стъпка е едно кратко съобщение, не повече.
+
+Въпроси по имейл? Пиши на ${footer.contactEmail}.
 
 ${siteConfig.footer.projectName}`;
 
   return {
-    subject: `Твоят персонализиран план — ${siteConfig.header.brandFull}`,
+    subject: `${firstName}, прочетох отговорите ти`,
     html,
     text,
   };

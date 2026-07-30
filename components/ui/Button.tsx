@@ -20,6 +20,8 @@ interface BaseProps {
 
 interface ButtonAsLink extends BaseProps {
   href: string;
+  target?: string;
+  rel?: string;
 }
 
 interface ButtonAsButton extends BaseProps {
@@ -36,7 +38,7 @@ export function Button(props: ButtonAsLink | ButtonAsButton) {
 
   if (props.href) {
     return (
-      <Link href={props.href} className={classes}>
+      <Link href={props.href} className={classes} target={props.target} rel={props.rel}>
         {children}
       </Link>
     );

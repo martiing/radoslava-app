@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { STAGE_LABELS, GOAL_REALISM_LABELS, MANUAL_STAGE_TRANSITIONS } from "@/lib/admin/stages";
+import { siteConfig } from "@/content/site-config";
+import { GOAL_REALISM_LABELS, MANUAL_STAGE_TRANSITIONS } from "@/lib/admin/stages";
+import { StageBadge } from "@/components/admin/StageBadge";
 import {
   updateParticipantStage,
   addParticipantNote,
@@ -17,6 +19,7 @@ const QUIZ_ANSWER_LABELS: Record<keyof QuizAnswers, string> = {
   currentWeightKg: "Текущо тегло (кг)",
   targetWeightKg: "Целево тегло (кг)",
   activityLevel: "Ниво на активност (1-5)",
+  trainingTrack: "Условия за тренировка",
   weeklyCommitment: "Реалистичен ангажимент (1-5)",
   primaryFocus: "Най-голяма нужда от помощ",
   hasLimitations: "Здравословни ограничения",
@@ -48,16 +51,22 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <Link href="/admin" className="text-sm text-neutral-500 hover:underline">
+        <Link href="/admin/participants" className="text-sm text-neutral-500 hover:underline">
           ← Всички участнички
         </Link>
         <h1 className="mt-2 text-xl font-semibold">{participant.name}</h1>
         <p className="text-sm text-neutral-500">
           {participant.email} · {participant.phone}
         </p>
-        <span className="mt-2 inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium">
-          {STAGE_LABELS[participant.stage as keyof typeof STAGE_LABELS] ?? participant.stage}
-        </span>
+        <div className="mt-2">
+          <StageBadge stage={participant.stage} />
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
+          <span>Link към Levels страницата (сподели във Viber след добавяне в групата):</span>
+          <code className="rounded bg-neutral-100 px-2 py-1 text-neutral-700">
+            {`${siteConfig.meta.siteUrl}/plan/${participant.id}`}
+          </code>
+        </div>
       </div>
 
       <section className="rounded-xl border border-neutral-200 bg-white p-5">

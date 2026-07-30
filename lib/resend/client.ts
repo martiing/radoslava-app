@@ -18,5 +18,13 @@ export function getResendClient() {
 /** Sender used for all outgoing mail — must be a domain/address verified in Resend. */
 export const EMAIL_FROM = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
+if (EMAIL_FROM.includes("@resend.dev")) {
+  console.warn(
+    "[resend] EMAIL_FROM is still the Resend sandbox sender (onboarding@resend.dev) — it can only deliver to your " +
+      "own verified Resend account, not real participants. Verify a domain in the Resend dashboard and set " +
+      "RESEND_FROM_EMAIL before going live."
+  );
+}
+
 /** Inbox that receives new-lead notifications. */
 export const ADMIN_NOTIFICATION_EMAIL = process.env.RESEND_ADMIN_EMAIL || "hello@radoslava.fit";

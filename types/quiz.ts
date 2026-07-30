@@ -4,12 +4,16 @@ export type PrimaryFocus = "nutrition" | "training" | "accountability" | "mindse
 
 export type GoalRealism = "realistic" | "ambitious" | "unrealistic";
 
+export type TrainingTrack = "gym" | "home";
+
 export interface QuizAnswers {
   goal: QuizGoal;
   currentWeightKg?: number;
   targetWeightKg?: number;
   activityLevel: number;
   weeklyCommitment: number;
+  /** Optional: not collected before this field was added, so older quiz_answers rows may omit it. */
+  trainingTrack?: TrainingTrack;
   primaryFocus: PrimaryFocus;
   hasLimitations: boolean;
   limitationsNote?: string;

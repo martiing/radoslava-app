@@ -1,4 +1,4 @@
-import type { PrimaryFocus, QuizGoal, QuizOption } from "@/types/quiz";
+import type { PrimaryFocus, QuizGoal, QuizOption, TrainingTrack } from "@/types/quiz";
 
 /**
  * Bulgarian copy for the registration quiz. Kept separate from
@@ -12,6 +12,11 @@ export const GOAL_OPTIONS: QuizOption<QuizGoal>[] = [
   { value: "strength", label: "Сила и издръжливост" },
   { value: "energy_habits", label: "Повече енергия и по-добри навици" },
   { value: "general_health", label: "Общо здраве и самочувствие" },
+];
+
+export const TRACK_OPTIONS: QuizOption<TrainingTrack>[] = [
+  { value: "gym", label: "Във фитнес зала" },
+  { value: "home", label: "Вкъщи, с минимално оборудване" },
 ];
 
 export const FOCUS_OPTIONS: QuizOption<PrimaryFocus>[] = [
@@ -39,6 +44,9 @@ export const QUIZ_COPY = {
     question: "Колко реалистично е за теб да отделяш 3–4 часа седмично през следващия месец?",
     minLabel: "Трудно постижимо",
     maxLabel: "Напълно постижимо",
+  },
+  trainingTrack: {
+    question: "Къде ще тренираш през месеца?",
   },
   primaryFocus: {
     question: "Къде имаш най-голяма нужда от помощ?",

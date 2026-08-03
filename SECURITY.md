@@ -14,6 +14,8 @@ vulnerability details or personal data.
 See [`.env.example`](.env.example). The most sensitive values are:
 
 - `SUPABASE_SERVICE_ROLE_KEY` — bypasses RLS; server-only.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — public by design and restricted to
+  cookie-backed Auth; it never replaces the service-role boundary for data.
 - `ADMIN_PASSWORD` — protects the current single-admin login.
 - `ADMIN_SESSION_SECRET` — signs 12-hour admin session cookies.
 - `QUIZ_SESSION_SECRET` — signs short-lived quiz handoff tokens.
@@ -65,6 +67,24 @@ call `requireAdmin()` even though `proxy.ts` also gates `/admin/*` routes.
 The shared-password model is temporary. Before adding multiple staff members,
 move admin identity to individual accounts with MFA and an audit trail.
 
+## Client portal authentication
+
+The client portal uses `@supabase/ssr` with PKCE and cookie-backed sessions.
+`proxy.ts` refreshes portal sessions and authorizes protected `/portal/*`
+routes with `auth.getClaims()`. Server code never trusts `auth.getSession()` for
+authorization.
+
+Participant data remains inaccessible to browser Supabase clients. The public
+publishable key is used for Auth only; private records are resolved through the
+service-role server client by `auth_user_id`. Existing challenge participants
+are not linked by matching an email address alone—the later claim flow must use
+a single-use invite token.
+
+Login and password-reset requests are rate-limited when Upstash is available.
+Password-reset responses are intentionally generic to prevent account
+enumeration. Auth callback redirects are restricted to `/portal` paths and are
+marked `private, no-store`.
+
 ## Database and retention
 
 Migrations run in this order:
@@ -74,6 +94,7 @@ Migrations run in this order:
 3. `0003_create_participant_events.sql`
 4. `0004_harden_participants.sql`
 5. `0005_retention_and_consent_version.sql`
+6. `0006_link_participants_to_auth.sql`
 
 RLS is enabled with zero public policies and grants are revoked from `anon` and
 `authenticated`. Current reads and writes use the server-only Supabase client.
@@ -100,6 +121,7 @@ a broad `unsafe-eval`/wildcard policy in production.
 ## Deployment checklist
 
 - Configure every variable from `.env.example` in Vercel.
+- Configure Supabase Auth redirect URLs and custom SMTP before client invites.
 - Use separate Supabase data for preview or enable Deployment Protection.
 - Enable MFA on GitHub, Vercel, Supabase, Cloudflare, Upstash and Resend.
 - Apply migrations in order and confirm the retention job.

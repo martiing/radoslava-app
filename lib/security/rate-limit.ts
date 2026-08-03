@@ -20,15 +20,25 @@ import { createHash } from "node:crypto";
 const IP_LIMIT = { requests: 5, window: "10 m" } as const;
 const EMAIL_LIMIT = { requests: 3, window: "24 h" } as const;
 const ADMIN_LOGIN_LIMIT = { requests: 5, window: "15 m" } as const;
+const CLIENT_LOGIN_IP_LIMIT = { requests: 10, window: "15 m" } as const;
+const CLIENT_LOGIN_EMAIL_LIMIT = { requests: 5, window: "15 m" } as const;
 
 let ipLimiter: Ratelimit | null = null;
 let emailLimiter: Ratelimit | null = null;
 let adminLoginLimiter: Ratelimit | null = null;
+let clientLoginIpLimiter: Ratelimit | null = null;
+let clientLoginEmailLimiter: Ratelimit | null = null;
 let initialised = false;
 
 function getLimiters() {
   if (initialised) {
-    return { ipLimiter, emailLimiter, adminLoginLimiter };
+    return {
+      ipLimiter,
+      emailLimiter,
+      adminLoginLimiter,
+      clientLoginIpLimiter,
+      clientLoginEmailLimiter,
+    };
   }
   initialised = true;
 
@@ -39,7 +49,13 @@ function getLimiters() {
     console.error(
       "[security] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN are not set — rate limiting is DISABLED."
     );
-    return { ipLimiter: null, emailLimiter: null, adminLoginLimiter: null };
+    return {
+      ipLimiter: null,
+      emailLimiter: null,
+      adminLoginLimiter: null,
+      clientLoginIpLimiter: null,
+      clientLoginEmailLimiter: null,
+    };
   }
 
   const redis = new Redis({ url, token });
@@ -65,7 +81,30 @@ function getLimiters() {
     analytics: false,
   });
 
-  return { ipLimiter, emailLimiter, adminLoginLimiter };
+  clientLoginIpLimiter = new Ratelimit({
+    redis,
+    prefix: "ratelimit:client-login:ip",
+    limiter: Ratelimit.slidingWindow(CLIENT_LOGIN_IP_LIMIT.requests, CLIENT_LOGIN_IP_LIMIT.window),
+    analytics: false,
+  });
+
+  clientLoginEmailLimiter = new Ratelimit({
+    redis,
+    prefix: "ratelimit:client-login:email",
+    limiter: Ratelimit.slidingWindow(
+      CLIENT_LOGIN_EMAIL_LIMIT.requests,
+      CLIENT_LOGIN_EMAIL_LIMIT.window
+    ),
+    analytics: false,
+  });
+
+  return {
+    ipLimiter,
+    emailLimiter,
+    adminLoginLimiter,
+    clientLoginIpLimiter,
+    clientLoginEmailLimiter,
+  };
 }
 
 export async function checkAdminLoginRateLimit(ip: string | null): Promise<RateLimitResult> {
@@ -80,6 +119,30 @@ export async function checkAdminLoginRateLimit(ip: string | null): Promise<RateL
     return { allowed: result.success, degraded: false };
   } catch (error) {
     console.error("[security] Admin login rate limit check failed, allowing request:", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    return { allowed: true, degraded: true };
+  }
+}
+
+export async function checkClientLoginRateLimit(
+  ip: string | null,
+  email: string
+): Promise<RateLimitResult> {
+  const { clientLoginIpLimiter: ipRl, clientLoginEmailLimiter: emailRl } = getLimiters();
+
+  if (!ipRl || !emailRl) {
+    return { allowed: true, degraded: true };
+  }
+
+  try {
+    const [ipResult, emailResult] = await Promise.all([
+      ipRl.limit(hashIdentifier(ip ?? "unknown")),
+      emailRl.limit(hashIdentifier(email)),
+    ]);
+    return { allowed: ipResult.success && emailResult.success, degraded: false };
+  } catch (error) {
+    console.error("[security] Client login rate limit check failed, allowing request:", {
       reason: error instanceof Error ? error.message : "unknown",
     });
     return { allowed: true, degraded: true };

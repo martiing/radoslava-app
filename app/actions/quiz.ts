@@ -6,6 +6,7 @@ import { computeGoalRealism } from "@/lib/quiz/scoring";
 import { getResendClient, EMAIL_FROM } from "@/lib/resend/client";
 import { buildPersonalizedWelcomeEmail } from "@/lib/email/templates";
 import { siteConfig } from "@/content/site-config";
+import { verifyQuizSessionToken } from "@/lib/quiz/session";
 import type { QuizAnswers } from "@/types/quiz";
 
 export interface QuizFormState {
@@ -19,7 +20,7 @@ export async function submitQuizAction(
   formData: FormData
 ): Promise<QuizFormState> {
   const parsed = quizSchema.safeParse({
-    participantId: formData.get("participantId"),
+    quizToken: formData.get("quizToken"),
     goal: formData.get("goal"),
     currentWeightKg: formData.get("currentWeightKg") || undefined,
     targetWeightKg: formData.get("targetWeightKg") || undefined,
@@ -49,6 +50,14 @@ export async function submitQuizAction(
   }
 
   const data = parsed.data;
+  const participantId = await verifyQuizSessionToken(data.quizToken);
+  if (!participantId) {
+    return {
+      status: "error",
+      message: "Сесията за въпросника е изтекла. Моля, презареди страницата.",
+    };
+  }
+
   const answers: QuizAnswers = {
     goal: data.goal,
     currentWeightKg: data.currentWeightKg,
@@ -80,12 +89,20 @@ export async function submitQuizAction(
         quiz_completed_at: nowIso,
         stage_changed_at: nowIso,
       })
-      .eq("id", data.participantId)
+      .eq("id", participantId)
+      .eq("stage", "registered")
       .select("id, name, email")
-      .single();
+      .maybeSingle();
 
-    if (error || !participant) {
-      throw error ?? new Error("Participant not found for quiz submission.");
+    if (error) {
+      throw error;
+    }
+
+    // Duplicate registrations and honeypots receive a signed decoy token so
+    // the registration response cannot reveal whether an email exists. Their
+    // quiz submission follows the same visible success path without a write.
+    if (!participant) {
+      return { status: "success", message: siteConfig.quiz.successMessage };
     }
 
     await supabase.from("participant_events").insert({
@@ -128,13 +145,15 @@ export async function submitQuizAction(
           message: "Изпратен персонализиран имейл.",
         });
       }
-    } catch (emailError) {
-      console.error("Failed to send personalized welcome email:", emailError);
+    } catch {
+      console.error("[quiz] Personalized email dispatch failed.");
     }
 
     return { status: "success", message: siteConfig.quiz.successMessage };
   } catch (submissionError) {
-    console.error("Failed to submit quiz:", submissionError);
+    console.error("[quiz] Submission failed:", {
+      reason: submissionError instanceof Error ? submissionError.message : "unknown",
+    });
     return {
       status: "error",
       message: "Възникна грешка. Моля, опитай отново след малко.",

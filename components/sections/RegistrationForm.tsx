@@ -9,16 +9,22 @@ import { SectionIcon } from "@/components/ui/SectionIcon";
 import { FormField } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import { RevealOnScroll } from "@/components/ui/RevealOnScroll";
+import { TurnstileWidget } from "@/components/ui/TurnstileWidget";
 import { registerAction, type RegisterFormState } from "@/app/actions/register";
 import { QuizForm } from "@/components/sections/QuizForm";
 
 const initialState: RegisterFormState = { status: "idle" };
 
-function SubmitButton({ label }: { label: string }) {
+// Only gate the submit button when Turnstile is actually configured, so the
+// form stays usable locally without a Cloudflare account.
+const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
+function SubmitButton({ label, disabled }: { label: string; disabled: boolean }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
 
   return (
-    <Button type="submit" disabled={pending} ariaBusy={pending} className="w-full">
+    <Button type="submit" disabled={isDisabled} ariaBusy={pending} className="w-full">
       {pending ? "Изпращане..." : label}
     </Button>
   );
@@ -26,12 +32,22 @@ function SubmitButton({ label }: { label: string }) {
 
 export function RegistrationForm() {
   const [state, formAction] = useActionState(registerAction, initialState);
+  // The mount timestamp feeds the server's bot-speed check. It is written to
+  // the DOM rather than rendered, because the server has no idea what time the
+  // client thinks it is and rendering it would cause a hydration mismatch.
+  //
+  // No dependency array on purpose: a Server Action form clears its DOM inputs
+  // after every submission, so the value has to be re-applied on each render.
+  // Running once would leave the field empty after the first rejected attempt,
+  // and the visitor could never submit again without reloading the page.
   const renderedAtInputRef = useRef<HTMLInputElement | null>(null);
+  const mountedAtRef = useRef<number | null>(null);
   useEffect(() => {
+    mountedAtRef.current ??= Date.now();
     if (renderedAtInputRef.current) {
-      renderedAtInputRef.current.value = String(Date.now());
+      renderedAtInputRef.current.value = String(mountedAtRef.current);
     }
-  }, []);
+  });
   const { registration } = siteConfig;
   const isSuccess = state.status === "success";
 
@@ -41,6 +57,22 @@ export function RegistrationForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
+
+  // Turnstile tokens are single-use, so every rejected submission has to ask
+  // Cloudflare for a fresh challenge before the visitor can retry. Bumping the
+  // key remounts the widget, which tears the old challenge down and renders a
+  // new one. Adjusting state during render (rather than in an effect) is the
+  // documented way to react to a prop/state change without a cascading render.
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "error") {
+      setTurnstileToken("");
+      setTurnstileKey((key) => key + 1);
+    }
+  }
 
   return (
     <SectionContainer id="registration" headingId="registration-heading">
@@ -57,7 +89,7 @@ export function RegistrationForm() {
         </div>
 
         <div className="mx-auto mt-10 max-w-2xl rounded-[2rem] border border-white/70 bg-surface/70 p-8 shadow-xl shadow-accent/5 backdrop-blur-xl sm:p-10">
-          {isSuccess && state.participantId ? (
+          {isSuccess && state.quizToken ? (
             <>
               <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
                 <span className="animate-fade-up flex h-14 w-14 items-center justify-center rounded-full bg-lime/30 text-accent-hover">
@@ -65,7 +97,7 @@ export function RegistrationForm() {
                 </span>
                 <p className="w-full text-lg font-medium text-foreground">{registration.successMessage}</p>
               </div>
-              <QuizForm participantId={state.participantId} />
+              <QuizForm quizToken={state.quizToken} />
             </>
           ) : isSuccess ? (
             <div role="status" className="flex flex-col items-center gap-4 py-6 text-center">
@@ -82,6 +114,7 @@ export function RegistrationForm() {
                 <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
               </div>
               <input ref={renderedAtInputRef} type="hidden" name="renderedAt" defaultValue="" />
+              <input type="hidden" name="turnstileToken" value={turnstileToken} />
 
               <FormField
                 id="name"
@@ -144,7 +177,12 @@ export function RegistrationForm() {
                 </p>
               )}
 
-              <SubmitButton label={registration.submitLabel} />
+              <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
+
+              <SubmitButton
+                label={registration.submitLabel}
+                disabled={turnstileEnabled && turnstileToken.length === 0}
+              />
             </form>
           )}
         </div>

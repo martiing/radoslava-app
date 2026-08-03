@@ -30,7 +30,7 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
-export function QuizForm({ participantId }: { participantId: string }) {
+export function QuizForm({ quizToken }: { quizToken: string }) {
   const [state, formAction] = useActionState(submitQuizAction, initialState);
   const { quiz } = siteConfig;
 
@@ -64,7 +64,7 @@ export function QuizForm({ participantId }: { participantId: string }) {
       </div>
 
       <form action={formAction} noValidate className="flex flex-col gap-6">
-        <input type="hidden" name="participantId" value={participantId} />
+        <input type="hidden" name="quizToken" value={quizToken} />
         <input type="hidden" name="goal" value={goal ?? ""} />
         <input type="hidden" name="activityLevel" value={activityLevel} />
         <input type="hidden" name="weeklyCommitment" value={weeklyCommitment} />

@@ -1,35 +1,75 @@
 "use server";
 
+import { siteConfig } from "@/content/site-config";
+import { buildAdminNotificationEmail, buildConfirmationEmail } from "@/lib/email/templates";
+import { createQuizSessionToken } from "@/lib/quiz/session";
+import { ADMIN_NOTIFICATION_EMAIL, EMAIL_FROM, getResendClient } from "@/lib/resend/client";
+import { checkRegistrationRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-ip";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { registrationSchema, type RegistrationFieldErrors } from "@/lib/validation/registration-schema";
-import { ADMIN_NOTIFICATION_EMAIL, EMAIL_FROM, getResendClient } from "@/lib/resend/client";
-import { buildAdminNotificationEmail, buildConfirmationEmail } from "@/lib/email/templates";
 
 export interface RegisterFormState {
   status: "idle" | "error" | "success";
   message?: string;
   fieldErrors?: RegistrationFieldErrors;
-  participantId?: string;
+  quizToken?: string;
 }
 
 const MIN_SECONDS_BEFORE_SUBMIT = 2;
+const MAX_FORM_AGE_MS = 6 * 60 * 60 * 1000;
+
+const GENERIC_ERROR: RegisterFormState = {
+  status: "error",
+  message: "Възникна грешка. Моля, опитай отново след малко.",
+};
+
+const TOO_MANY_REQUESTS: RegisterFormState = {
+  status: "error",
+  message: "Твърде много заявки. Моля, опитай отново по-късно.",
+};
+
+async function successResponse(participantId = crypto.randomUUID()): Promise<RegisterFormState> {
+  try {
+    return {
+      status: "success",
+      message: siteConfig.registration.successMessage,
+      // Duplicates and honeypots receive a signed decoy token, preserving the
+      // same response shape without exposing an existing participant ID.
+      quizToken: await createQuizSessionToken(participantId),
+    };
+  } catch {
+    // Registration must remain available if only the follow-up quiz secret is
+    // misconfigured. The quiz stays fail-closed by not receiving a token.
+    console.error("[register] QUIZ_SESSION_SECRET is missing; quiz handoff is disabled.");
+    return {
+      status: "success",
+      message: siteConfig.registration.successMessage,
+    };
+  }
+}
 
 export async function registerAction(
   _prevState: RegisterFormState,
   formData: FormData
 ): Promise<RegisterFormState> {
-  // Honeypot: real visitors never fill this hidden field; bots often do.
   const honeypot = formData.get("company");
   if (typeof honeypot === "string" && honeypot.trim().length > 0) {
-    return { status: "success", message: "Заявката ти е приета." };
+    return successResponse();
   }
 
-  // Simple bot-speed check: a human needs at least a couple of seconds to fill the form.
-  const renderedAt = Number(formData.get("renderedAt"));
-  if (Number.isFinite(renderedAt) && Date.now() - renderedAt < MIN_SECONDS_BEFORE_SUBMIT * 1000) {
+  const renderedAtRaw = formData.get("renderedAt");
+  const renderedAt = typeof renderedAtRaw === "string" ? Number(renderedAtRaw) : Number.NaN;
+  const formAge = Date.now() - renderedAt;
+  if (
+    !Number.isFinite(renderedAt) ||
+    formAge < MIN_SECONDS_BEFORE_SUBMIT * 1000 ||
+    formAge > MAX_FORM_AGE_MS
+  ) {
     return {
       status: "error",
-      message: "Моля, опитай отново.",
+      message: "Моля, презареди страницата и опитай отново.",
     };
   }
 
@@ -57,6 +97,21 @@ export async function registerAction(
   }
 
   const { name, email, phone } = parsed.data;
+  const normalisedEmail = email.toLowerCase();
+  const ip = await getClientIp();
+
+  const rateLimit = await checkRegistrationRateLimit(ip, normalisedEmail);
+  if (!rateLimit.allowed) {
+    return TOO_MANY_REQUESTS;
+  }
+
+  const humanVerified = await verifyTurnstileToken(formData.get("turnstileToken"), ip);
+  if (!humanVerified) {
+    return {
+      status: "error",
+      message: "Не успяхме да потвърдим заявката. Моля, презареди страницата и опитай отново.",
+    };
+  }
 
   try {
     const supabase = getSupabaseServerClient();
@@ -64,36 +119,34 @@ export async function registerAction(
       .from("participants")
       .insert({
         name,
-        email: email.toLowerCase(),
+        email: normalisedEmail,
         phone,
         consent: true,
+        consent_policy_version: siteConfig.footer.privacyPolicyVersion,
         source: "landing_page",
       })
       .select("id")
       .single();
 
     if (error) {
+      // The response must not reveal whether a given email already exists.
       if (error.code === "23505") {
-        return {
-          status: "error",
-          message: "Този имейл вече е записан. Ще получиш информация скоро.",
-          fieldErrors: { email: "Вече има заявка с този имейл." },
-        };
+        return successResponse();
       }
 
-      throw error;
+      console.error("[register] Supabase insert failed:", { code: error.code });
+      return GENERIC_ERROR;
     }
 
-    // Best-effort: the lead is already saved, so an email hiccup shouldn't surface as a form error.
     try {
       const resend = getResendClient();
       const confirmation = buildConfirmationEmail(name);
-      const adminNotification = buildAdminNotificationEmail({ name, email, phone });
+      const adminNotification = buildAdminNotificationEmail({ name, email: normalisedEmail, phone });
 
       await Promise.allSettled([
         resend.emails.send({
           from: EMAIL_FROM,
-          to: email,
+          to: normalisedEmail,
           subject: confirmation.subject,
           html: confirmation.html,
           text: confirmation.text,
@@ -106,15 +159,15 @@ export async function registerAction(
           text: adminNotification.text,
         }),
       ]);
-    } catch (emailError) {
-      console.error("Failed to send registration emails:", emailError);
+    } catch {
+      console.error("[register] Registration email dispatch failed.");
     }
 
-    return { status: "success", message: "Заявката ти е приета.", participantId: participant.id };
-  } catch {
-    return {
-      status: "error",
-      message: "Възникна грешка. Моля, опитай отново след малко.",
-    };
+    return successResponse(participant.id);
+  } catch (error) {
+    console.error("[register] Unexpected failure:", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    return GENERIC_ERROR;
   }
 }

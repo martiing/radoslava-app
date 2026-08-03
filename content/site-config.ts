@@ -199,6 +199,7 @@ export const siteConfig = {
     contactEmail: "hello@radoslava.fit",
     instagramUrl: "https://instagram.com/radoslava.fit",
     privacyPolicyHref: "/politika-za-poveritelnost",
+    privacyPolicyVersion: "2026-07-27",
     termsHref: "/obshti-usloviya",
     medicalDisclaimer:
       "Тази програма не замества консултация с медицински специалист. При здравословни ограничения се препоръчва предварителна консултация с лекар.",

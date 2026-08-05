@@ -7,10 +7,11 @@ import { LockedPlanNotice } from "@/components/plan/LockedPlanNotice";
 import { PlanResourceCard } from "@/components/plan/PlanResourceCard";
 import { LevelCard } from "@/components/plan/LevelCard";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getNutritionTier, getTrainingPlanKey } from "@/lib/plan/assignment";
+import { getNutritionTier, getTrainingPlanKey, getTrainingPlanKeyFromLevel } from "@/lib/plan/assignment";
 import { getWeekUnlockStatuses } from "@/lib/plan/weeks";
 import { DEFAULT_PROGRAM_SLUG, PLAN_PAGE_COPY, PROGRAM_CONTENT } from "@/content/program-content";
 import type { QuizAnswers } from "@/types/quiz";
+import type { IntakeExperienceLevel, IntakeGoal, IntakeTrainingTrack } from "@/types/intake";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function PlanPage({ params }: { params: Promise<{ participa
   const supabase = getSupabaseServerClient();
   const { data: participant, error } = await supabase
     .from("participants")
-    .select("id, name, stage, quiz_answers, program_slug")
+    .select("id, name, stage, quiz_answers, program_slug, primary_goal, training_track, experience_level")
     .eq("id", participantId)
     .single();
 
@@ -64,11 +65,30 @@ export default async function PlanPage({ params }: { params: Promise<{ participa
   }
 
   const program = PROGRAM_CONTENT[participant.program_slug] ?? PROGRAM_CONTENT[DEFAULT_PROGRAM_SLUG];
-  // She's already paid, so a missing/incomplete quiz answer never blocks
-  // access — it just falls back to a sensible default assignment.
-  const answers = (participant.quiz_answers as QuizAnswers | null) ?? FALLBACK_QUIZ_ANSWERS;
-  const nutrition = program.nutritionPlans[getNutritionTier(answers.goal)];
-  const training = program.trainingPlans[getTrainingPlanKey(answers)];
+
+  // Participants registered through the 5-question intake carry these
+  // promoted columns; participants from the earlier 9-question quiz carry
+  // `quiz_answers` instead. She's already paid, so a missing/incomplete
+  // answer never blocks access — it just falls back to a sensible default.
+  const hasIntakeAnswers = participant.primary_goal && participant.training_track && participant.experience_level;
+
+  let nutritionGoal: IntakeGoal | QuizAnswers["goal"];
+  let trainingPlanKey: ReturnType<typeof getTrainingPlanKey>;
+
+  if (hasIntakeAnswers) {
+    nutritionGoal = participant.primary_goal as IntakeGoal;
+    trainingPlanKey = getTrainingPlanKeyFromLevel(
+      participant.experience_level as IntakeExperienceLevel,
+      participant.training_track as IntakeTrainingTrack
+    );
+  } else {
+    const answers = (participant.quiz_answers as QuizAnswers | null) ?? FALLBACK_QUIZ_ANSWERS;
+    nutritionGoal = answers.goal;
+    trainingPlanKey = getTrainingPlanKey(answers);
+  }
+
+  const nutrition = program.nutritionPlans[getNutritionTier(nutritionGoal)];
+  const training = program.trainingPlans[trainingPlanKey];
   const weekStatuses = getWeekUnlockStatuses(program.startDateIso);
   const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
 

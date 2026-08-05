@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 interface ParticipantRow {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string;
   stage: ParticipantStage;
   goal_realism: string | null;
@@ -109,7 +109,7 @@ export default async function AdminParticipantsPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-neutral-500">
-                  <div>{participant.email}</div>
+                  {participant.email && <div>{participant.email}</div>}
                   <div>{participant.phone}</div>
                 </td>
                 <td className="px-4 py-3">

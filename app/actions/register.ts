@@ -3,16 +3,20 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { registrationSchema, type RegistrationFieldErrors } from "@/lib/validation/registration-schema";
 import { ADMIN_NOTIFICATION_EMAIL, EMAIL_FROM, getResendClient } from "@/lib/resend/client";
-import { buildAdminNotificationEmail, buildConfirmationEmail } from "@/lib/email/templates";
+import { buildAdminNotificationEmail } from "@/lib/email/templates";
+import { INTAKE_GOAL_OPTIONS, INTAKE_LEVEL_OPTIONS, INTAKE_TRACK_OPTIONS } from "@/lib/intake/questions";
 
 export interface RegisterFormState {
   status: "idle" | "error" | "success";
   message?: string;
   fieldErrors?: RegistrationFieldErrors;
-  participantId?: string;
 }
 
 const MIN_SECONDS_BEFORE_SUBMIT = 2;
+
+function labelFor<TValue extends string>(options: ReadonlyArray<{ value: TValue; label: string }>, value: TValue) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
 export async function registerAction(
   _prevState: RegisterFormState,
@@ -21,7 +25,7 @@ export async function registerAction(
   // Honeypot: real visitors never fill this hidden field; bots often do.
   const honeypot = formData.get("company");
   if (typeof honeypot === "string" && honeypot.trim().length > 0) {
-    return { status: "success", message: "Заявката ти е приета." };
+    return { status: "success" };
   }
 
   // Simple bot-speed check: a human needs at least a couple of seconds to fill the form.
@@ -35,8 +39,10 @@ export async function registerAction(
 
   const parsed = registrationSchema.safeParse({
     name: formData.get("name"),
-    email: formData.get("email"),
     phone: formData.get("phone"),
+    primaryGoal: formData.get("primaryGoal"),
+    trainingTrack: formData.get("trainingTrack"),
+    experienceLevel: formData.get("experienceLevel"),
     consent: formData.get("consent"),
   });
 
@@ -56,61 +62,57 @@ export async function registerAction(
     };
   }
 
-  const { name, email, phone } = parsed.data;
+  const { name, phone, primaryGoal, trainingTrack, experienceLevel } = parsed.data;
 
   try {
     const supabase = getSupabaseServerClient();
-    const { data: participant, error } = await supabase
-      .from("participants")
-      .insert({
-        name,
-        email: email.toLowerCase(),
-        phone,
-        consent: true,
-        source: "landing_page",
-      })
-      .select("id")
-      .single();
+    const { error } = await supabase.from("participants").insert({
+      name,
+      phone,
+      consent: true,
+      source: "landing_page",
+      primary_goal: primaryGoal,
+      training_track: trainingTrack,
+      experience_level: experienceLevel,
+    });
 
     if (error) {
       if (error.code === "23505") {
         return {
           status: "error",
-          message: "Този имейл вече е записан. Ще получиш информация скоро.",
-          fieldErrors: { email: "Вече има заявка с този имейл." },
+          message: "Вече има заявка с този телефонен номер. Ще се свържем с теб скоро.",
+          fieldErrors: { phone: "Вече има заявка с този телефон." },
         };
       }
 
       throw error;
     }
 
-    // Best-effort: the lead is already saved, so an email hiccup shouldn't surface as a form error.
+    // Best-effort: the lead is already saved, so an email hiccup shouldn't
+    // surface as a form error. This notifies Radoslava only — the
+    // participant's next step is the on-page Viber card, not an email.
     try {
       const resend = getResendClient();
-      const confirmation = buildConfirmationEmail(name);
-      const adminNotification = buildAdminNotificationEmail({ name, email, phone });
+      const adminNotification = buildAdminNotificationEmail({
+        name,
+        phone,
+        primaryGoal: labelFor(INTAKE_GOAL_OPTIONS, primaryGoal),
+        trainingTrack: labelFor(INTAKE_TRACK_OPTIONS, trainingTrack),
+        experienceLevel: labelFor(INTAKE_LEVEL_OPTIONS, experienceLevel),
+      });
 
-      await Promise.allSettled([
-        resend.emails.send({
-          from: EMAIL_FROM,
-          to: email,
-          subject: confirmation.subject,
-          html: confirmation.html,
-          text: confirmation.text,
-        }),
-        resend.emails.send({
-          from: EMAIL_FROM,
-          to: ADMIN_NOTIFICATION_EMAIL,
-          subject: adminNotification.subject,
-          html: adminNotification.html,
-          text: adminNotification.text,
-        }),
-      ]);
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: ADMIN_NOTIFICATION_EMAIL,
+        subject: adminNotification.subject,
+        html: adminNotification.html,
+        text: adminNotification.text,
+      });
     } catch (emailError) {
-      console.error("Failed to send registration emails:", emailError);
+      console.error("Failed to send admin notification email:", emailError);
     }
 
-    return { status: "success", message: "Заявката ти е приета.", participantId: participant.id };
+    return { status: "success" };
   } catch {
     return {
       status: "error",

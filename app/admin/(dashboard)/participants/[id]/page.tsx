@@ -11,8 +11,13 @@ import {
   resendPersonalizedEmail,
 } from "@/app/actions/admin/participants";
 import type { QuizAnswers } from "@/types/quiz";
+import { INTAKE_GOAL_OPTIONS, INTAKE_LEVEL_OPTIONS, INTAKE_TRACK_OPTIONS } from "@/lib/intake/questions";
 
 export const dynamic = "force-dynamic";
+
+function intakeLabel<TValue extends string>(options: ReadonlyArray<{ value: TValue; label: string }>, value: TValue) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
 const QUIZ_ANSWER_LABELS: Record<keyof QuizAnswers, string> = {
   goal: "Основна цел",
@@ -56,7 +61,7 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
         </Link>
         <h1 className="mt-2 text-xl font-semibold">{participant.name}</h1>
         <p className="text-sm text-neutral-500">
-          {participant.email} · {participant.phone}
+          {participant.email ? `${participant.email} · ${participant.phone}` : participant.phone}
         </p>
         <div className="mt-2">
           <StageBadge stage={participant.stage} />
@@ -85,8 +90,34 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
         </div>
       </section>
 
+      {(participant.primary_goal || participant.training_track || participant.experience_level) && (
+        <section className="rounded-xl border border-neutral-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-neutral-700">Отговори от формата</h2>
+          <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+            {participant.primary_goal && (
+              <div>
+                <dt className="text-neutral-500">Основна цел</dt>
+                <dd className="font-medium">{intakeLabel(INTAKE_GOAL_OPTIONS, participant.primary_goal)}</dd>
+              </div>
+            )}
+            {participant.training_track && (
+              <div>
+                <dt className="text-neutral-500">Къде ще тренира</dt>
+                <dd className="font-medium">{intakeLabel(INTAKE_TRACK_OPTIONS, participant.training_track)}</dd>
+              </div>
+            )}
+            {participant.experience_level && (
+              <div>
+                <dt className="text-neutral-500">Ниво на опит</dt>
+                <dd className="font-medium">{intakeLabel(INTAKE_LEVEL_OPTIONS, participant.experience_level)}</dd>
+              </div>
+            )}
+          </dl>
+        </section>
+      )}
+
       <section className="rounded-xl border border-neutral-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-neutral-700">Въпросник</h2>
+        <h2 className="text-sm font-semibold text-neutral-700">Въпросник (стар формуляр)</h2>
         {quizAnswers ? (
           <>
             <div className="mt-3 flex items-center gap-3 text-sm">

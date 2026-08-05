@@ -99,6 +99,9 @@ export async function resendPersonalizedEmail(participantId: string): Promise<vo
   if (!participant.primary_focus) {
     throw new Error("Participant hasn't completed the quiz yet — nothing to personalize.");
   }
+  if (!participant.email) {
+    throw new Error("Participant has no email on file — registered through the phone-only intake.");
+  }
 
   const goalRealism: GoalRealism = (participant.goal_realism_override ?? participant.goal_realism ?? "realistic") as GoalRealism;
   const quizAnswers = participant.quiz_answers as QuizAnswers | null;
@@ -159,10 +162,21 @@ export async function sendBroadcastAction(
     return { status: "success", message: "Няма участнички с избрания статус." };
   }
 
+  // Participants from the phone-only intake have no email on file — they
+  // can only be reached via Viber/phone, not this broadcast tool.
+  const emailable = participants.filter(
+    (participant): participant is typeof participant & { email: string } => Boolean(participant.email)
+  );
+  const skipped = participants.length - emailable.length;
+
+  if (emailable.length === 0) {
+    return { status: "success", message: "Няма участнички с имейл в тази група — всички са само с телефон." };
+  }
+
   const resend = getResendClient();
   let sentCount = 0;
 
-  for (const participant of participants) {
+  for (const participant of emailable) {
     const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
     const text = `Здравей, ${firstName}!\n\n${body}`;
 
@@ -184,5 +198,6 @@ export async function sendBroadcastAction(
     }
   }
 
-  return { status: "success", message: `Изпратени имейли: ${sentCount} от ${participants.length}.` };
+  const skippedNote = skipped > 0 ? ` (${skipped} без имейл, пропуснати)` : "";
+  return { status: "success", message: `Изпратени имейли: ${sentCount} от ${emailable.length}${skippedNote}.` };
 }

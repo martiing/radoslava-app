@@ -50,61 +50,18 @@ function wrapEmailHtml(bodyHtml: string, preheader?: string): string {
 </html>`;
 }
 
-export function buildConfirmationEmail(name: string): EmailContent {
-  const { hero, footer } = siteConfig;
-  const firstName = name.trim().split(/\s+/)[0] || name;
-
-  const html = wrapEmailHtml(`
-    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Здравей, ${firstName}!</h1>
-    <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
-      Заявката ти за <strong>„${hero.eyebrow}“</strong> е приета. Мястото ти е запазено — очаквай следващо
-      съобщение с начина на плащане и достъпа до затворената група.
-    </p>
-    <table role="presentation" style="width:100%;margin:24px 0;border-collapse:collapse;font-size:14px;">
-      <tr>
-        <td style="padding:8px 0;color:${COLORS.muted};">Начало</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${hero.startDate}</td>
-      </tr>
-      <tr style="border-top:1px solid ${COLORS.border};">
-        <td style="padding:8px 0;color:${COLORS.muted};">Записване до</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${hero.registrationDeadline}</td>
-      </tr>
-      <tr style="border-top:1px solid ${COLORS.border};">
-        <td style="padding:8px 0;color:${COLORS.muted};">Цена</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${hero.price}</td>
-      </tr>
-    </table>
-    <p style="margin:0;font-size:14px;line-height:1.6;color:${COLORS.muted};">
-      Въпроси? Просто отговори на този имейл или пиши на
-      <a href="mailto:${footer.contactEmail}" style="color:${COLORS.accent};">${footer.contactEmail}</a>.
-    </p>
-  `);
-
-  const text = `Здравей, ${firstName}!
-
-Заявката ти за „${hero.eyebrow}“ е приета. Мястото ти е запазено — очаквай следващо съобщение с начина на плащане и достъпа до затворената група.
-
-Начало: ${hero.startDate}
-Записване до: ${hero.registrationDeadline}
-Цена: ${hero.price}
-
-Въпроси? Пиши на ${footer.contactEmail}.
-
-${siteConfig.footer.projectName}`;
-
-  return {
-    subject: `Заявката ти е приета — ${siteConfig.header.brandFull}`,
-    html,
-    text,
-  };
-}
-
 interface LeadInfo {
   name: string;
-  email: string;
   phone: string;
+  primaryGoal: string;
+  trainingTrack: string;
+  experienceLevel: string;
 }
 
+/**
+ * Sent to Radoslava only — the participant no longer gets a confirmation
+ * email, since the on-page Viber card is now her immediate next step.
+ */
 export function buildAdminNotificationEmail(lead: LeadInfo): EmailContent {
   const html = wrapEmailHtml(`
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;">Нова заявка за записване</h1>
@@ -114,12 +71,20 @@ export function buildAdminNotificationEmail(lead: LeadInfo): EmailContent {
         <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.name}</td>
       </tr>
       <tr style="border-top:1px solid ${COLORS.border};">
-        <td style="padding:8px 0;color:${COLORS.muted};">Имейл</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.email}</td>
-      </tr>
-      <tr style="border-top:1px solid ${COLORS.border};">
         <td style="padding:8px 0;color:${COLORS.muted};">Телефон</td>
         <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.phone}</td>
+      </tr>
+      <tr style="border-top:1px solid ${COLORS.border};">
+        <td style="padding:8px 0;color:${COLORS.muted};">Цел</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.primaryGoal}</td>
+      </tr>
+      <tr style="border-top:1px solid ${COLORS.border};">
+        <td style="padding:8px 0;color:${COLORS.muted};">Тренировка</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.trainingTrack}</td>
+      </tr>
+      <tr style="border-top:1px solid ${COLORS.border};">
+        <td style="padding:8px 0;color:${COLORS.muted};">Ниво</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.experienceLevel}</td>
       </tr>
     </table>
   `);
@@ -127,8 +92,10 @@ export function buildAdminNotificationEmail(lead: LeadInfo): EmailContent {
   const text = `Нова заявка за записване
 
 Име: ${lead.name}
-Имейл: ${lead.email}
-Телефон: ${lead.phone}`;
+Телефон: ${lead.phone}
+Цел: ${lead.primaryGoal}
+Тренировка: ${lead.trainingTrack}
+Ниво: ${lead.experienceLevel}`;
 
   return {
     subject: `Нова заявка: ${lead.name}`,

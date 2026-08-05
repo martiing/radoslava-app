@@ -98,9 +98,11 @@ export interface SiteConfig {
   registration: {
     heading: string;
     intro: string;
-    successMessage: string;
     privacyLabel: string;
     submitLabel: string;
+    successHeading: string;
+    successBody: string;
+    viberButtonLabel: string;
   };
   quiz: {
     heading: string;

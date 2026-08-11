@@ -157,19 +157,18 @@ const TRAINING_TRACK_COPY: Record<TrainingTrack, string> = {
  * Viber deep link — no payment details go out until she's messaged there.
  */
 export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeInput): EmailContent {
-  const { hero, whatYouGet, footer, viberContact } = siteConfig;
+  const { hero, offerBlock, footer, viberContact } = siteConfig;
   const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
   const goalLine = GOAL_COPY[participant.goal];
   const realismLine = GOAL_REALISM_COPY[participant.goalRealism];
   const focusLine = PRIMARY_FOCUS_COPY[participant.primaryFocus];
   const trackLine = TRAINING_TRACK_COPY[participant.trainingTrack];
 
-  const benefitsHtml = whatYouGet.benefits
+  const benefitsHtml = offerBlock.values
     .map(
-      (benefit) => `
+      (value) => `
         <tr style="border-top:1px solid ${COLORS.border};">
-          <td style="padding:8px 0;font-weight:600;">${benefit.title}</td>
-          <td style="padding:8px 0;text-align:right;color:${COLORS.muted};">${benefit.description}</td>
+          <td style="padding:8px 0;">${value.text}</td>
         </tr>`
     )
     .join("");
@@ -245,7 +244,7 @@ ${focusLine}
 ${trackLine}
 ${participant.hasLimitations ? `\n${footer.medicalDisclaimer}\n` : ""}
 Какво получаваш за ${hero.price}:
-${whatYouGet.benefits.map((benefit) => `- ${benefit.title}: ${benefit.description}`).join("\n")}
+${offerBlock.values.map((value) => `- ${value.text}`).join("\n")}
 
 Какво следва оттук:
 1. Добавяш Радослава във Viber: ${viberContact.deepLink}

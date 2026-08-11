@@ -19,7 +19,6 @@ export function LimitedSpots() {
           <p className="mt-4 w-full text-lg leading-relaxed text-muted">{limitedSpots.reasonText}</p>
           <div className="mt-6 flex w-full flex-col gap-1 text-sm font-medium text-foreground">
             <p>{limitedSpots.registrationDeadline}</p>
-            <p>{limitedSpots.capacity}</p>
           </div>
           <Button href="#registration" className="mt-8">
             {limitedSpots.ctaLabel}

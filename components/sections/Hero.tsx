@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarClock, Users, Wallet } from "lucide-react";
+import { CalendarDays, CalendarClock, Wallet } from "lucide-react";
 import { siteConfig } from "@/content/site-config";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -43,18 +43,12 @@ export function Hero() {
             <Button href="#registration" variant="primary">
               {hero.ctaPrimaryLabel}
             </Button>
-            <Button href="#challenge" variant="secondary">
+            <Button href="#offer" variant="secondary">
               {hero.ctaSecondaryLabel}
             </Button>
           </div>
 
           <dl className="animate-fade-up mt-7 flex flex-wrap items-center gap-3" style={{ animationDelay: "380ms" }}>
-            <div className="flex items-center gap-2.5 rounded-2xl border border-accent/20 bg-accent-soft/70 px-4 py-2.5">
-              <Users aria-hidden="true" className="h-5 w-5 shrink-0 text-accent-hover" strokeWidth={1.75} />
-              <dt className="sr-only">Ограничен брой места</dt>
-              <dd className="text-sm font-semibold text-accent-hover">Ограничен брой места: {hero.capacity}</dd>
-            </div>
-
             {stats.map(({ icon: Icon, label, value }) => (
               <div
                 key={label}

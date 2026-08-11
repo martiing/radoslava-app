@@ -3,13 +3,11 @@ import { Footer } from "@/components/layout/Footer";
 import { ScrollProgressRail } from "@/components/ui/ScrollProgressRail";
 import { AmbientGlow } from "@/components/ui/AmbientGlow";
 import { Hero } from "@/components/sections/Hero";
+import { OfferBlock } from "@/components/sections/OfferBlock";
+import { FitCheck } from "@/components/sections/FitCheck";
 import { PainPoints } from "@/components/sections/PainPoints";
-import { ChallengeExplainer } from "@/components/sections/ChallengeExplainer";
 import { BmiCalculator } from "@/components/sections/BmiCalculator";
-import { WhyRadoslava } from "@/components/sections/WhyRadoslava";
-import { ClientResults } from "@/components/sections/ClientResults";
-import { HowItWorks } from "@/components/sections/HowItWorks";
-import { WhatYouGet } from "@/components/sections/WhatYouGet";
+import { MeetRadoslava } from "@/components/sections/MeetRadoslava";
 import { LimitedSpots } from "@/components/sections/LimitedSpots";
 import { RegistrationForm } from "@/components/sections/RegistrationForm";
 import { FAQ } from "@/components/sections/FAQ";
@@ -25,13 +23,11 @@ export default function Home() {
         <AmbientGlow variant="cool" className="right-[-8%] top-[45%] h-[28rem] w-[28rem]" />
         <AmbientGlow variant="warm" className="left-[5%] top-[80%] h-80 w-80" />
         <Hero />
+        <OfferBlock />
+        <FitCheck />
         <PainPoints />
-        <ChallengeExplainer />
         <BmiCalculator />
-        <WhyRadoslava />
-        <ClientResults />
-        <HowItWorks />
-        <WhatYouGet />
+        <MeetRadoslava />
         <LimitedSpots />
         <RegistrationForm />
         <FAQ />

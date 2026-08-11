@@ -16,12 +16,12 @@ export function FitCheck() {
           <h2 id="fit-check-heading" className="w-full font-display text-3xl font-semibold text-white sm:text-4xl">
             {fitCheck.heading}
           </h2>
-          <p className="mt-4 w-full text-lg text-white/70">{fitCheck.subhead}</p>
+          <p className="mt-3 w-full text-base leading-relaxed text-white/70 sm:mt-4 sm:text-lg">{fitCheck.subhead}</p>
         </div>
       </RevealOnScroll>
 
       <RevealOnScroll delayMs={100}>
-        <div className="mx-auto mt-10 max-w-3xl">
+        <div className="mx-auto mt-7 max-w-3xl sm:mt-10">
           <ObstacleChips chips={fitCheck.chips} chipsLabel={fitCheck.chipsLabel} defaultPanelText={fitCheck.defaultPanelText} />
         </div>
       </RevealOnScroll>

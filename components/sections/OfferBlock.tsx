@@ -33,12 +33,16 @@ export function OfferBlock() {
         </p>
       </RevealOnScroll>
 
-      <ul className="mx-auto mt-5 grid max-w-4xl gap-x-10 gap-y-5 sm:grid-cols-2">
+      <ul className="mx-auto mt-5 flex max-w-4xl snap-x snap-mandatory gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:gap-x-10 sm:gap-y-5 sm:overflow-visible sm:pb-0">
         {offerBlock.values.map((value, index) => {
           const Icon = VALUE_ICONS[index % VALUE_ICONS.length];
           return (
-            <RevealOnScroll key={value.text} delayMs={140 + index * 60}>
-              <li className="flex items-start gap-4">
+            <RevealOnScroll
+              key={value.text}
+              delayMs={140 + index * 60}
+              className="w-[82%] shrink-0 snap-start sm:w-auto"
+            >
+              <li className="flex h-full items-start gap-4 rounded-2xl border border-white/70 bg-surface/70 p-4 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface/80 text-accent-hover">
                   <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
                 </span>
@@ -50,13 +54,21 @@ export function OfferBlock() {
       </ul>
 
       <RevealOnScroll delayMs={140 + offerBlock.values.length * 60}>
-        <div className="mx-auto mt-12 max-w-2xl">
+        <details className="mx-auto mt-7 max-w-2xl rounded-[1.5rem] border border-white/70 bg-surface/70 p-4 sm:hidden">
+          <summary className="cursor-pointer font-display font-semibold text-foreground">
+            {offerBlock.dayPreview.heading}
+          </summary>
+          <div className="mt-4">
+            <DayPreviewToggle copy={offerBlock.dayPreview} />
+          </div>
+        </details>
+        <div className="mx-auto mt-12 hidden max-w-2xl sm:block">
           <DayPreviewToggle copy={offerBlock.dayPreview} />
         </div>
       </RevealOnScroll>
 
       <RevealOnScroll delayMs={200 + offerBlock.values.length * 60}>
-        <div className="mx-auto mt-12 flex max-w-2xl flex-col items-center gap-6 rounded-[1.75rem] border border-white/70 bg-surface/80 p-8 text-center shadow-xl shadow-accent/5 backdrop-blur-xl sm:p-10">
+        <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-5 rounded-[1.75rem] border border-white/70 bg-surface/80 p-6 text-center shadow-xl shadow-accent/5 backdrop-blur-xl sm:mt-12 sm:gap-6 sm:p-10">
           <div>
             <div className="flex items-baseline justify-center gap-2">
               <span className="font-display text-5xl font-bold text-foreground">{offerBlock.price.amount}</span>

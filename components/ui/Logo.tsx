@@ -3,12 +3,13 @@ import { cn } from "@/lib/utils";
 interface LogoProps {
   shortName: string;
   fullName: string;
+  mobileName?: string;
   className?: string;
   tone?: "default" | "inverted";
 }
 
 /** Compact horizontal lockup for the sticky header. */
-export function Logo({ shortName, fullName, className, tone = "default" }: LogoProps) {
+export function Logo({ shortName, fullName, mobileName, className, tone = "default" }: LogoProps) {
   return (
     <span className={cn("inline-flex items-baseline gap-2.5", className)}>
       <span
@@ -21,11 +22,12 @@ export function Logo({ shortName, fullName, className, tone = "default" }: LogoP
       </span>
       <span
         className={cn(
-          "hidden text-[10px] font-semibold uppercase tracking-[0.2em] sm:inline",
+          "text-[10px] font-semibold uppercase tracking-[0.16em] sm:tracking-[0.2em]",
           tone === "inverted" ? "text-white/70" : "text-muted"
         )}
       >
-        {fullName}
+        <span className="sm:hidden">{mobileName ?? fullName}</span>
+        <span className="hidden sm:inline">{fullName}</span>
       </span>
     </span>
   );

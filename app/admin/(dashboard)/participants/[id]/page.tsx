@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createPlanAccessToken } from "@/lib/plan/access-token";
+import { hasPlanAccess } from "@/lib/plan/access";
 import { siteConfig } from "@/content/site-config";
 import { GOAL_REALISM_LABELS, MANUAL_STAGE_TRANSITIONS } from "@/lib/admin/stages";
 import { StageBadge } from "@/components/admin/StageBadge";
@@ -53,6 +55,18 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
   const quizAnswers = participant.quiz_answers as QuizAnswers | null;
   const currentRealism = participant.goal_realism_override ?? participant.goal_realism;
 
+  // Only minted once the participant has actually reached a stage that may
+  // see a plan. Issuing earlier would hand out a working credential ahead of
+  // the authorization it depends on, and a warning next to it is not a
+  // control. Issued fresh on each view, so the clock starts when Radoslava
+  // copies the link.
+  //
+  // A missing or too-short PLAN_ACCESS_SECRET throws here, in the admin panel,
+  // where it is meant to be noticed — the public page fails quietly instead.
+  const planLink = hasPlanAccess(participant.stage)
+    ? `${siteConfig.meta.siteUrl}/plan/${await createPlanAccessToken(participant.id)}`
+    : null;
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -66,11 +80,22 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
         <div className="mt-2">
           <StageBadge stage={participant.stage} />
         </div>
-        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-          <span>Link към Levels страницата (сподели във Viber след добавяне в групата):</span>
-          <code className="rounded bg-neutral-100 px-2 py-1 text-neutral-700">
-            {`${siteConfig.meta.siteUrl}/plan/${participant.id}`}
-          </code>
+        <div className="mt-3 flex flex-col gap-1 text-xs text-neutral-500">
+          {planLink ? (
+            <>
+              <span>Link към Levels страницата (сподели във Viber):</span>
+              <code className="break-all rounded bg-neutral-100 px-2 py-1 text-neutral-700">
+                {planLink}
+              </code>
+              <span>
+                Подписан и с ограничен срок. Който го има, вижда плана — не го публикувай.
+              </span>
+            </>
+          ) : (
+            <span>
+              Линкът към Levels страницата се появява след „Добавена в групата“.
+            </span>
+          )}
         </div>
       </div>
 

@@ -1,19 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin/auth";
+import { toSafeCsvValue } from "@/lib/admin/csv";
+import {
+  filterParticipantsByQuery,
+  parseParticipantListFilters,
+} from "@/lib/admin/participant-list";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { STAGE_LABELS, GOAL_REALISM_LABELS } from "@/lib/admin/stages";
-
-function toCsvValue(value: unknown): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-}
 
 export async function GET(request: NextRequest) {
   await requireAdmin();
 
   const { searchParams } = new URL(request.url);
-  const stage = searchParams.get("stage");
-  const q = searchParams.get("q");
+  const stageValues = searchParams.getAll("stage");
+  const queryValues = searchParams.getAll("q");
+  const parsedFilters = parseParticipantListFilters(
+    stageValues.length > 1 ? stageValues : stageValues[0],
+    queryValues.length > 1 ? queryValues : queryValues[0]
+  );
+  if (!parsedFilters.ok) {
+    return NextResponse.json({ error: parsedFilters.message }, { status: 400 });
+  }
+
+  const { stage, query: searchQuery } = parsedFilters.filters;
 
   const supabase = getSupabaseServerClient();
   let query = supabase
@@ -22,39 +31,37 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (stage) query = query.eq("stage", stage);
-  if (q) {
-    const escaped = q.replace(/[%,]/g, "");
-    query = query.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%`);
-  }
 
   const { data: participants, error } = await query;
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[admin] participant_export_failed:", { code: error.code });
+    return NextResponse.json({ error: "Възникна грешка при експортирането." }, { status: 500 });
   }
 
   const header = ["Име", "Имейл", "Телефон", "Статус", "Оценка на целта", "Фокус", "Ограничения", "Регистрирана на"];
-  const lines = [header.map(toCsvValue).join(",")];
+  const lines = [header.map(toSafeCsvValue).join(",")];
 
-  for (const participant of participants ?? []) {
+  for (const participant of filterParticipantsByQuery(participants ?? [], searchQuery)) {
     const realism = participant.goal_realism_override ?? participant.goal_realism;
     lines.push(
       [
-        toCsvValue(participant.name),
-        toCsvValue(participant.email),
-        toCsvValue(participant.phone),
-        toCsvValue(STAGE_LABELS[participant.stage as keyof typeof STAGE_LABELS] ?? participant.stage),
-        toCsvValue(realism ? (GOAL_REALISM_LABELS[realism] ?? realism) : ""),
-        toCsvValue(participant.primary_focus ?? ""),
-        toCsvValue(participant.has_limitations ? "Да" : "Не"),
-        toCsvValue(new Date(participant.created_at).toLocaleString("bg-BG")),
+        toSafeCsvValue(participant.name),
+        toSafeCsvValue(participant.email),
+        toSafeCsvValue(participant.phone),
+        toSafeCsvValue(STAGE_LABELS[participant.stage as keyof typeof STAGE_LABELS] ?? participant.stage),
+        toSafeCsvValue(realism ? (GOAL_REALISM_LABELS[realism] ?? realism) : ""),
+        toSafeCsvValue(participant.primary_focus ?? ""),
+        toSafeCsvValue(participant.has_limitations ? "Да" : "Не"),
+        toSafeCsvValue(new Date(participant.created_at).toLocaleString("bg-BG")),
       ].join(",")
     );
   }
 
-  return new NextResponse(lines.join("\n"), {
+  return new NextResponse(`\uFEFF${lines.join("\r\n")}`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="participants-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Cache-Control": "private, no-store, max-age=0, must-revalidate",
     },
   });
 }

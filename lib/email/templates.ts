@@ -1,4 +1,9 @@
 import { siteConfig } from "@/content/site-config";
+import {
+  escapeEmailHtml,
+  sanitizeEmailSubject,
+  sanitizeEmailTextLine,
+} from "@/lib/email/sanitize";
 import type { GoalRealism, PrimaryFocus, QuizGoal, TrainingTrack } from "@/types/quiz";
 
 interface EmailContent {
@@ -21,7 +26,7 @@ function wrapEmailHtml(bodyHtml: string, preheader?: string): string {
   // line. The trailing whitespace entities pad it so the client doesn't
   // fall through into rendering the visible body as the preview instead.
   const preheaderHtml = preheader
-    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}${"&nbsp;&zwnj;".repeat(40)}</div>`
+    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeEmailHtml(preheader)}${"&nbsp;&zwnj;".repeat(40)}</div>`
     : "";
 
   return `<!doctype html>
@@ -31,8 +36,8 @@ function wrapEmailHtml(bodyHtml: string, preheader?: string): string {
     <table role="presentation" width="100%" style="max-width:480px;margin:0 auto;border-collapse:collapse;">
       <tr>
         <td style="padding-bottom:24px;">
-          <span style="font-size:22px;font-weight:700;color:${COLORS.accent};letter-spacing:-0.02em;">${siteConfig.header.brandShort}</span>
-          <span style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${COLORS.muted};margin-left:8px;">${siteConfig.header.brandFull}</span>
+          <span style="font-size:22px;font-weight:700;color:${COLORS.accent};letter-spacing:-0.02em;">${escapeEmailHtml(siteConfig.header.brandShort)}</span>
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${COLORS.muted};margin-left:8px;">${escapeEmailHtml(siteConfig.header.brandFull)}</span>
         </td>
       </tr>
       <tr>
@@ -42,7 +47,7 @@ function wrapEmailHtml(bodyHtml: string, preheader?: string): string {
       </tr>
       <tr>
         <td style="padding-top:24px;font-size:12px;color:${COLORS.muted};text-align:center;">
-          ${siteConfig.footer.projectName}
+          ${escapeEmailHtml(siteConfig.footer.projectName)}
         </td>
       </tr>
     </table>
@@ -63,42 +68,57 @@ interface LeadInfo {
  * email, since the on-page Viber card is now her immediate next step.
  */
 export function buildAdminNotificationEmail(lead: LeadInfo): EmailContent {
+  const htmlLead = {
+    name: escapeEmailHtml(lead.name),
+    phone: escapeEmailHtml(lead.phone),
+    primaryGoal: escapeEmailHtml(lead.primaryGoal),
+    trainingTrack: escapeEmailHtml(lead.trainingTrack),
+    experienceLevel: escapeEmailHtml(lead.experienceLevel),
+  };
+  const textLead = {
+    name: sanitizeEmailTextLine(lead.name),
+    phone: sanitizeEmailTextLine(lead.phone),
+    primaryGoal: sanitizeEmailTextLine(lead.primaryGoal),
+    trainingTrack: sanitizeEmailTextLine(lead.trainingTrack),
+    experienceLevel: sanitizeEmailTextLine(lead.experienceLevel),
+  };
+
   const html = wrapEmailHtml(`
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;">Нова заявка за записване</h1>
     <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px;">
       <tr>
         <td style="padding:8px 0;color:${COLORS.muted};">Име</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.name}</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${htmlLead.name}</td>
       </tr>
       <tr style="border-top:1px solid ${COLORS.border};">
         <td style="padding:8px 0;color:${COLORS.muted};">Телефон</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.phone}</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${htmlLead.phone}</td>
       </tr>
       <tr style="border-top:1px solid ${COLORS.border};">
         <td style="padding:8px 0;color:${COLORS.muted};">Цел</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.primaryGoal}</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${htmlLead.primaryGoal}</td>
       </tr>
       <tr style="border-top:1px solid ${COLORS.border};">
         <td style="padding:8px 0;color:${COLORS.muted};">Тренировка</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.trainingTrack}</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${htmlLead.trainingTrack}</td>
       </tr>
       <tr style="border-top:1px solid ${COLORS.border};">
         <td style="padding:8px 0;color:${COLORS.muted};">Ниво</td>
-        <td style="padding:8px 0;text-align:right;font-weight:600;">${lead.experienceLevel}</td>
+        <td style="padding:8px 0;text-align:right;font-weight:600;">${htmlLead.experienceLevel}</td>
       </tr>
     </table>
   `);
 
   const text = `Нова заявка за записване
 
-Име: ${lead.name}
-Телефон: ${lead.phone}
-Цел: ${lead.primaryGoal}
-Тренировка: ${lead.trainingTrack}
-Ниво: ${lead.experienceLevel}`;
+Име: ${textLead.name}
+Телефон: ${textLead.phone}
+Цел: ${textLead.primaryGoal}
+Тренировка: ${textLead.trainingTrack}
+Ниво: ${textLead.experienceLevel}`;
 
   return {
-    subject: `Нова заявка: ${lead.name}`,
+    subject: sanitizeEmailSubject(`Нова заявка: ${textLead.name}`),
     html,
     text,
   };
@@ -158,7 +178,9 @@ const TRAINING_TRACK_COPY: Record<TrainingTrack, string> = {
  */
 export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeInput): EmailContent {
   const { hero, offerBlock, footer, viberContact } = siteConfig;
-  const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
+  const firstNameRaw = participant.name.trim().split(/\s+/)[0] || participant.name;
+  const firstName = sanitizeEmailTextLine(firstNameRaw);
+  const firstNameHtml = escapeEmailHtml(firstName);
   const goalLine = GOAL_COPY[participant.goal];
   const realismLine = GOAL_REALISM_COPY[participant.goalRealism];
   const focusLine = PRIMARY_FOCUS_COPY[participant.primaryFocus];
@@ -168,30 +190,30 @@ export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeIn
     .map(
       (value) => `
         <tr style="border-top:1px solid ${COLORS.border};">
-          <td style="padding:8px 0;">${value.text}</td>
+          <td style="padding:8px 0;">${escapeEmailHtml(value.text)}</td>
         </tr>`
     )
     .join("");
 
   const limitationsHtml = participant.hasLimitations
-    ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:${COLORS.muted};">${footer.medicalDisclaimer}</p>`
+    ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:${COLORS.muted};">${escapeEmailHtml(footer.medicalDisclaimer)}</p>`
     : "";
 
   const html = wrapEmailHtml(
     `
-    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Здравей, ${firstName}!</h1>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Здравей, ${firstNameHtml}!</h1>
     <p style="margin:0 0 20px;font-size:16px;line-height:1.6;">
-      Записването ти за <strong>„${hero.eyebrow}“</strong> е при мен, заедно с всичко, което сподели във
+      Записването ти за <strong>„${escapeEmailHtml(hero.eyebrow)}“</strong> е при мен, заедно с всичко, което сподели във
       въпросника. Отделих време да прочета отговорите ти лично.
     </p>
 
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${goalLine}</p>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${realismLine}</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${focusLine}</p>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${trackLine}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${escapeEmailHtml(goalLine)}</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${escapeEmailHtml(realismLine)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${escapeEmailHtml(focusLine)}</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${COLORS.muted};">${escapeEmailHtml(trackLine)}</p>
     ${limitationsHtml}
 
-    <h2 style="margin:24px 0 8px;font-size:17px;font-weight:700;">Какво получаваш за ${hero.price}</h2>
+    <h2 style="margin:24px 0 8px;font-size:17px;font-weight:700;">Какво получаваш за ${escapeEmailHtml(hero.price)}</h2>
     <table role="presentation" style="width:100%;margin:8px 0 24px;border-collapse:collapse;font-size:14px;">
       ${benefitsHtml}
     </table>
@@ -206,7 +228,7 @@ export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeIn
 
     <div style="text-align:center;margin:0 0 24px;">
       <a
-        href="${viberContact.deepLink}"
+        href="${escapeEmailHtml(viberContact.deepLink)}"
         style="display:inline-block;background:${COLORS.accent};color:#ffffff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;text-decoration:none;"
       >
         Пиши ми във Viber
@@ -227,7 +249,7 @@ export function buildPersonalizedWelcomeEmail(participant: PersonalizedWelcomeIn
 
     <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:${COLORS.muted};">
       Въпроси по имейл? Пиши на
-      <a href="mailto:${footer.contactEmail}" style="color:${COLORS.accent};">${footer.contactEmail}</a>.
+      <a href="mailto:${escapeEmailHtml(footer.contactEmail)}" style="color:${COLORS.accent};">${escapeEmailHtml(footer.contactEmail)}</a>.
     </p>
   `,
     "Видях какво написа във въпросника — ето какво мисля и какво следва."
@@ -264,7 +286,7 @@ ${offerBlock.values.map((value) => `- ${value.text}`).join("\n")}
 ${siteConfig.footer.projectName}`;
 
   return {
-    subject: `${firstName}, прочетох отговорите ти`,
+    subject: sanitizeEmailSubject(`${firstName}, прочетох отговорите ти`),
     html,
     text,
   };

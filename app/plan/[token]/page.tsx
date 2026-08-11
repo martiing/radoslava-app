@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SectionContainer } from "@/components/ui/SectionContainer";
-import { LockedPlanNotice } from "@/components/plan/LockedPlanNotice";
 import { PlanResourceCard } from "@/components/plan/PlanResourceCard";
 import { LevelCard } from "@/components/plan/LevelCard";
+import { verifyPlanAccessToken } from "@/lib/plan/access-token";
+import { hasPlanAccess } from "@/lib/plan/access";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getNutritionTier, getTrainingPlanKey, getTrainingPlanKeyFromLevel } from "@/lib/plan/assignment";
 import { getWeekUnlockStatuses } from "@/lib/plan/weeks";
@@ -17,9 +18,10 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `${PLAN_PAGE_COPY.heading} | Slavova's Shape Squad`,
+  // Belt and braces with the X-Robots-Tag set in proxy.ts: the URL contains a
+  // bearer token and must never end up in an index.
+  robots: { index: false, follow: false },
 };
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FALLBACK_QUIZ_ANSWERS: QuizAnswers = {
   goal: "general_health",
@@ -30,10 +32,16 @@ const FALLBACK_QUIZ_ANSWERS: QuizAnswers = {
   expectations: "",
 };
 
-export default async function PlanPage({ params }: { params: Promise<{ participantId: string }> }) {
-  const { participantId } = await params;
+export default async function PlanPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
 
-  if (!UUID_PATTERN.test(participantId)) {
+  // Every failure below ends in the same notFound(). A forged token, an
+  // expired one, a token for a participant who was deleted, and a participant
+  // who has not been added to the group yet must all look identical from
+  // outside — otherwise the page answers questions about who exists and how
+  // far along they are.
+  const participantId = await verifyPlanAccessToken(token);
+  if (!participantId) {
     notFound();
   }
 
@@ -48,20 +56,8 @@ export default async function PlanPage({ params }: { params: Promise<{ participa
     notFound();
   }
 
-  const hasAccess = participant.stage === "added_to_group" || participant.stage === "completed";
-
-  if (!hasAccess) {
-    return (
-      <>
-        <Header />
-        <main>
-          <SectionContainer id="plan" headingId="plan-heading">
-            <LockedPlanNotice />
-          </SectionContainer>
-        </main>
-        <Footer />
-      </>
-    );
+  if (!hasPlanAccess(participant.stage)) {
+    notFound();
   }
 
   const program = PROGRAM_CONTENT[participant.program_slug] ?? PROGRAM_CONTENT[DEFAULT_PROGRAM_SLUG];

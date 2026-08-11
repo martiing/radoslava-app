@@ -7,7 +7,11 @@ const weightSchema = z.coerce
 
 export const quizSchema = z
   .object({
-    participantId: z.string().trim().uuid("Невалидна заявка. Моля, презареди страницата."),
+    quizToken: z
+      .string()
+      .trim()
+      .min(1, "Невалидна заявка. Моля, презареди страницата.")
+      .max(256, "Невалидна заявка. Моля, презареди страницата."),
     goal: z.enum(["weight_loss", "tone_and_shape", "strength", "energy_habits", "general_health"], {
       message: "Моля, избери основната си цел.",
     }),

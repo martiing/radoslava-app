@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollProgressRail } from "@/components/ui/ScrollProgressRail";
@@ -13,7 +14,12 @@ import { RegistrationForm } from "@/components/sections/RegistrationForm";
 import { FAQ } from "@/components/sections/FAQ";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 
-export default function Home() {
+export default async function Home() {
+  // Opts out of static prerendering so the CSP nonce from proxy.ts is applied
+  // to Next's inline scripts. Without this the page is built once, its scripts
+  // carry no nonce, and the policy blocks them.
+  await connection();
+
   return (
     <>
       <ScrollProgressRail />

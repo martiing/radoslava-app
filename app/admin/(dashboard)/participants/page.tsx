@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { STAGE_LABELS, GOAL_REALISM_LABELS, type ParticipantStage } from "@/lib/admin/stages";
+import {
+  MAX_PARTICIPANT_SEARCH_LENGTH,
+  filterParticipantsByQuery,
+  parseParticipantListFilters,
+} from "@/lib/admin/participant-list";
 import { StageBadge } from "@/components/admin/StageBadge";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +24,16 @@ interface ParticipantRow {
 export default async function AdminParticipantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; q?: string }>;
+  searchParams: Promise<{ stage?: string | string[]; q?: string | string[] }>;
 }) {
-  const { stage: stageFilter, q } = await searchParams;
+  const { stage, q } = await searchParams;
+  const parsedFilters = parseParticipantListFilters(stage, q);
+
+  if (!parsedFilters.ok) {
+    return <p className="text-red-600">{parsedFilters.message}</p>;
+  }
+
+  const { stage: stageFilter, query: searchQuery } = parsedFilters.filters;
   const supabase = getSupabaseServerClient();
 
   let query = supabase
@@ -32,21 +44,17 @@ export default async function AdminParticipantsPage({
   if (stageFilter) {
     query = query.eq("stage", stageFilter);
   }
-  if (q) {
-    const escaped = q.replace(/[%,]/g, "");
-    query = query.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%`);
-  }
-
   const { data: participants, error } = await query;
 
   if (error) {
-    return <p className="text-red-600">Грешка при зареждане: {error.message}</p>;
+    console.error("[admin] participant_list_failed:", { code: error.code });
+    return <p className="text-red-600">Възникна грешка при зареждането.</p>;
   }
 
-  const rows = (participants ?? []) as ParticipantRow[];
+  const rows = filterParticipantsByQuery((participants ?? []) as ParticipantRow[], searchQuery);
   const exportQuery = new URLSearchParams();
   if (stageFilter) exportQuery.set("stage", stageFilter);
-  if (q) exportQuery.set("q", q);
+  if (searchQuery) exportQuery.set("q", searchQuery);
 
   return (
     <div className="flex flex-col gap-6">
@@ -58,7 +66,8 @@ export default async function AdminParticipantsPage({
             <input
               type="search"
               name="q"
-              defaultValue={q ?? ""}
+              defaultValue={searchQuery}
+              maxLength={MAX_PARTICIPANT_SEARCH_LENGTH}
               placeholder="Търси по име, имейл, телефон..."
               className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />

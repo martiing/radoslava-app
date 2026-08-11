@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { siteConfig } from "@/content/site-config";
 import { GOAL_OPTIONS, FOCUS_OPTIONS, TRACK_OPTIONS, QUIZ_COPY } from "@/lib/quiz/questions";
@@ -71,10 +71,6 @@ const DEFAULT_ANSWERS: QuizAnswerState = {
   stepIndex: 0,
 };
 
-function storageKey(participantId: string) {
-  return `quiz-answers-${participantId}`;
-}
-
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
 
@@ -85,32 +81,18 @@ function SubmitButton({ label }: { label: string }) {
   );
 }
 
-export function QuizForm({ participantId }: { participantId: string }) {
+export function QuizForm({ quizToken }: { quizToken: string }) {
   const [state, formAction] = useActionState(submitQuizAction, initialState);
   const { quiz } = siteConfig;
 
-  // Lazy initializer (not an effect) so a mid-quiz refresh restores answers
-  // without an extra render pass; safe here since QuizForm only ever mounts
-  // client-side after registration succeeds, never during SSR/hydration.
-  const [answers, setAnswers] = useState<QuizAnswerState>(() => {
-    const saved = sessionStorage.getItem(storageKey(participantId));
-    if (!saved) return DEFAULT_ANSWERS;
-    try {
-      return { ...DEFAULT_ANSWERS, ...JSON.parse(saved) };
-    } catch {
-      return DEFAULT_ANSWERS;
-    }
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem(storageKey(participantId), JSON.stringify(answers));
-  }, [answers, participantId]);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      sessionStorage.removeItem(storageKey(participantId));
-    }
-  }, [state.status, participantId]);
+  // Answers live in React state only, never in browser storage.
+  //
+  // This wizard collects weight, injuries and free text about the person's
+  // body: health data. Persisting it put that on disk for anyone with access
+  // to the machine, and any key shared between people using the same tab would
+  // replay one person's answers into another's form. Losing a draft on refresh
+  // is the cheaper failure.
+  const [answers, setAnswers] = useState<QuizAnswerState>(DEFAULT_ANSWERS);
 
   function update<K extends keyof QuizAnswerState>(key: K, value: QuizAnswerState[K]) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
@@ -173,7 +155,14 @@ export function QuizForm({ participantId }: { participantId: string }) {
       <QuizProgress step={stepIndex} totalSteps={visibleSteps.length} />
 
       <form action={formAction} noValidate className="flex flex-col gap-6">
-        <input type="hidden" name="participantId" value={participantId} />
+        {/*
+          The signed token replaces the raw participant id in the form. It is
+          signed, not encrypted — the id inside it is readable by anyone
+          holding the token. What it buys is integrity and expiry: the value
+          cannot be altered or pointed at another participant without the
+          server's secret, and submitQuizAction re-verifies it on every submit.
+        */}
+        <input type="hidden" name="quizToken" value={quizToken} />
         <input type="hidden" name="goal" value={answers.goal ?? ""} />
         <input type="hidden" name="activityLevel" value={answers.activityLevel} />
         <input type="hidden" name="trainingTrack" value={answers.trainingTrack ?? ""} />

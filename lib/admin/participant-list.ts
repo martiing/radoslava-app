@@ -1,4 +1,4 @@
-import { STAGE_LABELS, type ParticipantStage } from "@/lib/admin/stages";
+import { isParticipantStage, type ParticipantStage } from "@/lib/admin/stages";
 
 export const MAX_PARTICIPANT_SEARCH_LENGTH = 100;
 
@@ -10,10 +10,6 @@ export interface ParticipantListFilters {
 export type ParticipantListFilterResult =
   | { ok: true; filters: ParticipantListFilters }
   | { ok: false; message: string };
-
-function isParticipantStage(value: string): value is ParticipantStage {
-  return Object.prototype.hasOwnProperty.call(STAGE_LABELS, value);
-}
 
 /**
  * Validates URL-controlled admin filters before they reach Supabase.

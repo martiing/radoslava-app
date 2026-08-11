@@ -78,8 +78,23 @@ where participant.id = normalized.id
 create unique index if not exists participants_phone_idx
   on public.participants (phone);
 
-alter table public.participants
-  add constraint participants_phone_e164_check
-  check (phone ~ '^\+359[0-9]{9}$');
+-- Guarded so re-running the file is a no-op, like the index above.
+-- The lookup is scoped to this table as well as the name: constraint names are
+-- unique per table, not per schema, so matching on conname alone would skip
+-- creation because some unrelated table happens to use the same name.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'participants_phone_e164_check'
+      and conrelid = 'public.participants'::regclass
+  ) then
+    alter table public.participants
+      add constraint participants_phone_e164_check
+      check (phone ~ '^\+359[0-9]{9}$');
+  end if;
+end
+$$;
 
 commit;

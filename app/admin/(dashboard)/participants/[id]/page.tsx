@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { createPlanAccessToken } from "@/lib/plan/access-token";
 import { hasPlanAccess } from "@/lib/plan/access";
 import { siteConfig } from "@/content/site-config";
-import { GOAL_REALISM_LABELS, MANUAL_STAGE_TRANSITIONS } from "@/lib/admin/stages";
+import { GOAL_REALISM_LABELS, MANUAL_STAGE_TRANSITIONS, isParticipantStage } from "@/lib/admin/stages";
 import { StageBadge } from "@/components/admin/StageBadge";
 import {
   updateParticipantStage,
@@ -63,7 +63,7 @@ export default async function AdminParticipantDetailPage({ params }: { params: P
   //
   // A missing or too-short PLAN_ACCESS_SECRET throws here, in the admin panel,
   // where it is meant to be noticed — the public page fails quietly instead.
-  const planLink = hasPlanAccess(participant.stage)
+  const planLink = isParticipantStage(participant.stage) && hasPlanAccess(participant.stage)
     ? `${siteConfig.meta.siteUrl}/plan/${await createPlanAccessToken(participant.id)}`
     : null;
 

@@ -10,6 +10,12 @@ import { StageBadge } from "@/components/admin/StageBadge";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * How many rows the screen loads. High enough that the cap is invisible for
+ * the foreseeable cohort sizes, low enough to keep the page responsive.
+ */
+const PARTICIPANT_LIST_LIMIT = 500;
+
 interface ParticipantRow {
   id: string;
   name: string;
@@ -36,22 +42,35 @@ export default async function AdminParticipantsPage({
   const { stage: stageFilter, query: searchQuery } = parsedFilters.filters;
   const supabase = getSupabaseServerClient();
 
+  // Deliberately capped, unlike the CSV export.
+  //
+  // Search below runs over the rows fetched here, so a capped list means a
+  // capped search. That is acceptable for a screen someone scrolls, but only
+  // if it says so — a quietly truncated list reads as "no such participant".
+  // The export pages through everything and stays complete.
   let query = supabase
     .from("participants")
-    .select("id, name, email, phone, stage, goal_realism, goal_realism_override, created_at")
-    .order("created_at", { ascending: false });
+    .select("id, name, email, phone, stage, goal_realism, goal_realism_override, created_at", {
+      count: "exact",
+    })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(PARTICIPANT_LIST_LIMIT);
 
   if (stageFilter) {
     query = query.eq("stage", stageFilter);
   }
-  const { data: participants, error } = await query;
+  const { data: participants, error, count } = await query;
 
   if (error) {
     console.error("[admin] participant_list_failed:", { code: error.code });
     return <p className="text-red-600">Възникна грешка при зареждането.</p>;
   }
 
-  const rows = filterParticipantsByQuery((participants ?? []) as ParticipantRow[], searchQuery);
+  const loaded = (participants ?? []) as ParticipantRow[];
+  const totalMatching = count ?? loaded.length;
+  const isTruncated = totalMatching > loaded.length;
+  const rows = filterParticipantsByQuery(loaded, searchQuery);
   const exportQuery = new URLSearchParams();
   if (stageFilter) exportQuery.set("stage", stageFilter);
   if (searchQuery) exportQuery.set("q", searchQuery);
@@ -59,7 +78,10 @@ export default async function AdminParticipantsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Участнички ({rows.length})</h1>
+        <h1 className="text-xl font-semibold">
+          Участнички ({rows.length}
+          {isTruncated ? ` от ${totalMatching}` : ""})
+        </h1>
         <div className="flex items-center gap-3">
           <form className="flex items-center gap-2">
             {stageFilter && <input type="hidden" name="stage" value={stageFilter} />}
@@ -98,6 +120,18 @@ export default async function AdminParticipantsPage({
           </Link>
         ))}
       </div>
+
+      {isTruncated && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          Показани са първите {loaded.length} от {totalMatching} записа.{" "}
+          <strong>Търсенето в тази страница обхваща само заредените записи</strong>, така че
+          участничка извън тях няма да се намери тук. Свалянето на CSV не е ограничено — то
+          съдържа всички записи по текущия филтър.
+        </p>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
         <table className="w-full min-w-[720px] text-left text-sm">

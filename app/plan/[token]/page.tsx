@@ -7,6 +7,7 @@ import { PlanResourceCard } from "@/components/plan/PlanResourceCard";
 import { LevelCard } from "@/components/plan/LevelCard";
 import { verifyPlanAccessToken } from "@/lib/plan/access-token";
 import { hasPlanAccess } from "@/lib/plan/access";
+import { isParticipantStage } from "@/lib/admin/stages";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getNutritionTier, getTrainingPlanKey, getTrainingPlanKeyFromLevel } from "@/lib/plan/assignment";
 import { getWeekUnlockStatuses } from "@/lib/plan/weeks";
@@ -56,7 +57,10 @@ export default async function PlanPage({ params }: { params: Promise<{ token: st
     notFound();
   }
 
-  if (!hasPlanAccess(participant.stage)) {
+  // `stage` arrives from Supabase as a plain string. Narrowing it here means an
+  // unknown value — a stage added to the database but not to the catalogue —
+  // is refused rather than quietly falling through the access check.
+  if (!isParticipantStage(participant.stage) || !hasPlanAccess(participant.stage)) {
     notFound();
   }
 

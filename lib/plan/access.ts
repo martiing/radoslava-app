@@ -10,8 +10,18 @@
  * or Radoslava ends up sending links that 404.
  */
 
-const STAGES_WITH_PLAN_ACCESS = new Set(["added_to_group", "completed"]);
+import type { ParticipantStage } from "@/lib/admin/stages";
 
-export function hasPlanAccess(stage: string): boolean {
+const STAGES_WITH_PLAN_ACCESS: ReadonlySet<ParticipantStage> = new Set([
+  "added_to_group",
+  "completed",
+]);
+
+/**
+ * Takes an already-narrowed stage rather than a string, so a value that never
+ * passed `isParticipantStage` cannot reach this decision. A typo would
+ * otherwise compile and silently deny access to everyone.
+ */
+export function hasPlanAccess(stage: ParticipantStage): boolean {
   return STAGES_WITH_PLAN_ACCESS.has(stage);
 }

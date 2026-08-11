@@ -67,3 +67,14 @@ const STAGE_TIMESTAMP_COLUMN: Partial<Record<ParticipantStage, string>> = {
 export function getStageTimestampColumn(stage: ParticipantStage): string | undefined {
   return STAGE_TIMESTAMP_COLUMN[stage];
 }
+
+/**
+ * Narrows an untrusted string to a known stage.
+ *
+ * Rows arrive from Supabase typed as plain strings, so this is the only place
+ * a `stage` value earns its type. Lives beside the catalogue it checks against,
+ * so adding a stage cannot leave the guard behind.
+ */
+export function isParticipantStage(value: unknown): value is ParticipantStage {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(STAGE_LABELS, value);
+}

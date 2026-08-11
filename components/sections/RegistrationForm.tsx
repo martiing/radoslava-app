@@ -244,7 +244,43 @@ export function RegistrationForm() {
 
   return (
     <>
-      <span id="registration" className="sr-only" aria-hidden="true" />
+      {/*
+        The one #registration target on the page. Every CTA points here.
+
+        With JavaScript on it renders nothing visible and behaves exactly like
+        the scroll sentinel it replaces — the dialog does the work.
+
+        With JavaScript off the dialog can never open, so this is what the
+        visitor actually lands on. It has to say so and offer a way through,
+        otherwise the CTA is a button that silently does nothing.
+
+        A no-JS version of the form itself is not the fix here: the intake is a
+        multi-step wizard whose later fields do not exist in the DOM until the
+        earlier steps advance, and Turnstile requires JavaScript by definition.
+        A native submit would post a half-empty request that fails validation
+        and spends the visitor's IP rate limit. Viber is the working path.
+      */}
+      <div id="registration" className="scroll-mt-24">
+        <noscript>
+          <div className="mx-auto max-w-2xl rounded-[2rem] border border-accent/20 bg-accent-soft/40 p-6 text-center sm:p-8">
+            <p className="font-display text-xl font-semibold text-foreground">
+              {registration.heading}
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-muted">
+              Формата за записване изисква включен JavaScript. Ако не можеш да го включиш, пиши
+              директно на Радослава във Viber — така или иначе това е следващата стъпка след
+              записване.
+            </p>
+            <a
+              href={viberContact.deepLink}
+              className="mt-5 inline-block rounded-full bg-accent px-7 py-3 font-semibold text-white"
+            >
+              {registration.viberButtonLabel}
+            </a>
+            <p className="mt-3 text-sm text-muted">{viberContact.phoneDisplay}</p>
+          </div>
+        </noscript>
+      </div>
 
       <dialog
         ref={dialogRef}

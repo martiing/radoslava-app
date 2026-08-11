@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
   // Do not advertise the framework version to scanners.
   poweredByHeader: false,
 
+  // Local development is served on the LAN so the same build can be tested
+  // on a phone. Without these explicit origins Next blocks its own dev client
+  // resources and hydrated sections remain invisible on the LAN URL.
+  allowedDevOrigins: ["192.168.50.49", "127.0.0.1"],
+
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

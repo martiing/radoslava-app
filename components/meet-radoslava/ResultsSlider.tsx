@@ -45,7 +45,7 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
       <div
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="rounded-[1.75rem] border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 sm:p-8"
+        className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 sm:p-8"
       >
         <div key={index} className="animate-fade-up flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3">
@@ -71,7 +71,7 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             </div>
           </div>
 
-          <p className="text-white">&ldquo;{client.quote}&rdquo;</p>
+          <p className="line-clamp-4 text-white sm:line-clamp-none">&ldquo;{client.quote}&rdquo;</p>
           <p className="font-semibold text-white">{client.name}</p>
         </div>
 
@@ -80,7 +80,7 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             type="button"
             onClick={() => goTo(index - 1)}
             aria-label="Предишен резултат"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition-all duration-300 hover:border-accent-bright/40 hover:bg-white/10"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition-all duration-300 hover:border-accent-bright/40 hover:bg-white/10"
           >
             <ChevronLeft aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
           </button>
@@ -94,11 +94,16 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
                 aria-selected={dotIndex === index}
                 aria-label={`Резултат на ${dotClient.name}`}
                 onClick={() => goTo(dotIndex)}
-                className={cn(
-                  "h-2.5 rounded-full transition-all duration-300",
-                  dotIndex === index ? "w-6 bg-accent-bright" : "w-2.5 bg-white/25 hover:bg-white/40"
-                )}
-              />
+                className="group flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "h-2.5 rounded-full transition-all duration-300",
+                    dotIndex === index ? "w-6 bg-accent-bright" : "w-2.5 bg-white/25 group-hover:bg-white/40"
+                  )}
+                />
+              </button>
             ))}
           </div>
 
@@ -106,7 +111,7 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             type="button"
             onClick={() => goTo(index + 1)}
             aria-label="Следващ резултат"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition-all duration-300 hover:border-accent-bright/40 hover:bg-white/10"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition-all duration-300 hover:border-accent-bright/40 hover:bg-white/10"
           >
             <ChevronRight aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
           </button>

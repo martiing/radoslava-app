@@ -10,7 +10,7 @@ export function MeetRadoslava() {
   const { meetRadoslava } = siteConfig;
 
   return (
-    <SectionContainer id="meet-radoslava" headingId="meet-radoslava-heading" tone="dark">
+    <SectionContainer id="meet-radoslava" headingId="meet-radoslava-heading" tone="dark" className="px-4 sm:px-14 lg:px-20">
       <RevealOnScroll>
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
           <SectionIcon icon={Dumbbell} tone="inverted" />
@@ -24,7 +24,7 @@ export function MeetRadoslava() {
         </div>
       </RevealOnScroll>
 
-      <div className="mx-auto mt-12 grid max-w-5xl items-start gap-10 sm:grid-cols-2 sm:gap-14">
+      <div className="mx-auto mt-8 grid max-w-5xl items-start gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-14">
         <RevealOnScroll delayMs={80}>
           <PlaceholderImage
             src={meetRadoslava.photoSrc}
@@ -33,9 +33,13 @@ export function MeetRadoslava() {
             aspectRatio="1/1"
           />
 
-          <p className="mt-6 text-base leading-relaxed text-white/70">{meetRadoslava.bio}</p>
+          <details className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70 sm:hidden">
+            <summary className="cursor-pointer font-semibold text-white">Историята на Радослава</summary>
+            <p className="mt-3 text-sm leading-relaxed">{meetRadoslava.bio}</p>
+          </details>
+          <p className="mt-6 hidden text-base leading-relaxed text-white/70 sm:block">{meetRadoslava.bio}</p>
 
-          <div className="mt-6 border-t border-white/10 pt-6">
+          <div className="mt-5 border-t border-white/10 pt-5 sm:mt-6 sm:pt-6">
             <span className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-white">
               <Award aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2} />
               {meetRadoslava.credentialBadge}

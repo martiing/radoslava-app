@@ -13,7 +13,7 @@ export function Footer() {
             <LogoStacked shortName={header.brandShort} fullName={header.brandFull} tone="inverted" />
             <p className="mt-4 text-white/80">{footer.projectName}</p>
             <p className="mt-2">
-              <a href={`mailto:${footer.contactEmail}`} className="transition-colors hover:text-accent-bright">
+              <a href={`mailto:${footer.contactEmail}`} className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright">
                 {footer.contactEmail}
               </a>
             </p>
@@ -22,17 +22,17 @@ export function Footer() {
                 href={footer.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-accent-bright"
+                className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright"
               >
                 Instagram
               </a>
             </p>
           </div>
           <nav aria-label="Правна информация" className="flex flex-col gap-2 sm:items-end">
-            <a href={footer.privacyPolicyHref} className="transition-colors hover:text-accent-bright">
+            <a href={footer.privacyPolicyHref} className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright">
               Политика за поверителност
             </a>
-            <a href={footer.termsHref} className="transition-colors hover:text-accent-bright">
+            <a href={footer.termsHref} className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright">
               Общи условия
             </a>
           </nav>

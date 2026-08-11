@@ -40,6 +40,16 @@ export interface FitCheckChip {
   solution: string;
 }
 
+export interface RegistrationFlowStep {
+  title: string;
+  body: string;
+}
+
+export interface RegistrationDialogStep {
+  title: string;
+  body: string;
+}
+
 export interface SiteConfig {
   meta: {
     title: string;
@@ -49,6 +59,7 @@ export interface SiteConfig {
   header: {
     brandShort: string;
     brandFull: string;
+    brandMobile: string;
     ctaLabel: string;
   };
   hero: {
@@ -106,6 +117,15 @@ export interface SiteConfig {
   registration: {
     heading: string;
     intro: string;
+    ctaLabel: string;
+    flowHeading: string;
+    flowSteps: RegistrationFlowStep[];
+    dialogTitle: string;
+    dialogIntro: string;
+    dialogSteps: RegistrationDialogStep[];
+    nextLabel: string;
+    backLabel: string;
+    closeLabel: string;
     privacyLabel: string;
     submitLabel: string;
     successHeading: string;

@@ -128,6 +128,11 @@ export interface SiteConfig {
     closeLabel: string;
     privacyLabel: string;
     submitLabel: string;
+    securityCheckLoading: string;
+    securityCheckError: string;
+    securityCheckExpired: string;
+    securityCheckRetryLabel: string;
+    securityCheckViberLabel: string;
     successHeading: string;
     successBody: string;
     viberButtonLabel: string;

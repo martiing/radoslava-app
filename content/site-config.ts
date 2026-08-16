@@ -1,5 +1,9 @@
 import type { SiteConfig } from "@/types/content";
 
+const publicSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
+  "https://radoslava-app.vercel.app";
+
 /**
  * Single source of truth for all copy, dates, price and links.
  * Everything below is sample/demo content — swap it for the real business
@@ -11,7 +15,10 @@ export const siteConfig = {
     title: "Едномесечно предизвикателство с Радослава | Направи първата стъпка",
     description:
       "Четири седмици с план за хранене, тренировки, проследяване и подкрепа от Радослава. Запази своето място в предизвикателството.",
-    siteUrl: "https://predizvikatelstvo.radoslava.fit",
+    // Keep generated plan/auth links on a hostname that actually resolves.
+    // When the custom domain goes live, NEXT_PUBLIC_SITE_URL becomes the only
+    // deployment setting that needs to change.
+    siteUrl: publicSiteUrl,
   },
   header: {
     brandShort: "SSS",
@@ -192,6 +199,12 @@ export const siteConfig = {
     closeLabel: "Затвори",
     privacyLabel: "Съгласен/съгласна съм с политиката за поверителност и обработката на личните ми данни.",
     submitLabel: "Изпрати заявка",
+    securityCheckLoading: "Зареждаме защитата на формата…",
+    securityCheckError:
+      "Не успяхме да заредим защитата на формата. Опитай отново или пиши директно във Viber.",
+    securityCheckExpired: "Проверката изтече. Стартирай я отново, за да изпратиш заявката.",
+    securityCheckRetryLabel: "Опитай отново",
+    securityCheckViberLabel: "Продължи директно във Viber",
     successHeading: "Готово! Мястото ти е запазено.",
     successBody: "Последна стъпка: пиши на Радослава във Viber, за да потвърдим детайлите и да те добавим в затворената група.",
     viberButtonLabel: "Свържи се с Радослава във Viber",

@@ -19,7 +19,10 @@ import {
 import { siteConfig } from "@/content/site-config";
 import { FormField } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
-import { TurnstileWidget } from "@/components/ui/TurnstileWidget";
+import {
+  TurnstileWidget,
+  type TurnstileWidgetState,
+} from "@/components/ui/TurnstileWidget";
 import { registerAction, type RegisterFormState } from "@/app/actions/register";
 import { SingleSelect } from "@/components/quiz/SingleSelect";
 import {
@@ -38,6 +41,10 @@ import type {
   IntakeGoal,
   IntakeTrainingTrack,
 } from "@/types/intake";
+import {
+  validateRegistrationContact,
+  type RegistrationContactErrors,
+} from "@/lib/validation/registration-contact";
 
 const initialState: RegisterFormState = { status: "idle" };
 const REGISTRATION_HASH = "#registration";
@@ -56,9 +63,18 @@ const LEVEL_OPTIONS_WITH_ICONS = INTAKE_LEVEL_OPTIONS.map((option) => ({
   icon: INTAKE_LEVEL_ICONS[option.value],
 }));
 
-// Only gate the submit button when Turnstile is actually configured, so the
-// form stays usable locally without a Cloudflare account.
+// Production must fail closed when Turnstile is missing. Local development
+// stays usable without Cloudflare credentials.
 const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+const turnstileRequired = process.env.NODE_ENV === "production";
+const initialTurnstileState:
+  | TurnstileWidgetState
+  | "configuration"
+  | "not-required" = turnstileEnabled
+  ? "loading"
+  : turnstileRequired
+    ? "configuration"
+    : "not-required";
 
 function getHistoryState() {
   return typeof window.history.state === "object" && window.history.state
@@ -82,12 +98,16 @@ export function RegistrationForm() {
   const [renderedAt, setRenderedAt] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [contactErrors, setContactErrors] = useState<RegistrationContactErrors>({});
   const [primaryGoal, setPrimaryGoal] = useState<IntakeGoal | null>(null);
   const [trainingTrack, setTrainingTrack] = useState<IntakeTrainingTrack | null>(null);
   const [experienceLevel, setExperienceLevel] = useState<IntakeExperienceLevel | null>(null);
   const [consent, setConsent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const [turnstileState, setTurnstileState] = useState<
+    TurnstileWidgetState | "configuration" | "not-required"
+  >(initialTurnstileState);
 
   const showDialog = useCallback(() => {
     const dialog = dialogRef.current;
@@ -226,10 +246,46 @@ export function RegistrationForm() {
 
     const formData = new FormData(event.currentTarget);
     setTurnstileToken("");
+    if (turnstileEnabled) setTurnstileState("loading");
     setTurnstileKey((key) => key + 1);
     startTransition(() => {
       formAction(formData);
     });
+  }
+
+  function focusContactError(errors: RegistrationContactErrors) {
+    const fieldName = errors.name ? "name" : errors.phone ? "phone" : null;
+    if (!fieldName) return;
+
+    window.requestAnimationFrame(() => {
+      formRef.current
+        ?.querySelector<HTMLElement>(`[name="${fieldName}"]`)
+        ?.focus({ preventScroll: true });
+    });
+  }
+
+  function continueFromCurrentStep() {
+    if (stepIndex === 0) {
+      const errors = validateRegistrationContact(name, phone);
+      setContactErrors(errors);
+      if (errors.name || errors.phone) {
+        focusContactError(errors);
+        return;
+      }
+    }
+
+    setStepIndex((step) => Math.min(registration.dialogSteps.length - 1, step + 1));
+  }
+
+  function resetTurnstile() {
+    setTurnstileToken("");
+    setTurnstileState(initialTurnstileState);
+    setTurnstileKey((key) => key + 1);
+  }
+
+  function goBackOneStep() {
+    if (stepIndex === registration.dialogSteps.length - 1) resetTurnstile();
+    setStepIndex((step) => Math.max(0, step - 1));
   }
 
   const canContinueFromContact = name.trim().length > 0 && phone.trim().length > 0;
@@ -238,7 +294,8 @@ export function RegistrationForm() {
     experienceLevel !== null &&
     consent &&
     renderedAt.length > 0 &&
-    (!turnstileEnabled || turnstileToken.length > 0);
+    ((!turnstileRequired && !turnstileEnabled) ||
+      (turnstileState === "verified" && turnstileToken.length > 0));
 
   const activeStep = registration.dialogSteps[stepIndex];
 
@@ -383,9 +440,14 @@ export function RegistrationForm() {
                     name="name"
                     label={INTAKE_COPY.name.label}
                     autoComplete="name"
-                    error={state.fieldErrors?.name}
+                    error={contactErrors.name ?? state.fieldErrors?.name}
                     value={name}
-                    onChange={setName}
+                    onChange={(value) => {
+                      setName(value);
+                      if (contactErrors.name) {
+                        setContactErrors((errors) => ({ ...errors, name: undefined }));
+                      }
+                    }}
                     icon={<User className="h-5 w-5" strokeWidth={1.75} />}
                   />
                   <FormField
@@ -394,9 +456,14 @@ export function RegistrationForm() {
                     label={INTAKE_COPY.phone.label}
                     type="tel"
                     autoComplete="tel"
-                    error={state.fieldErrors?.phone}
+                    error={contactErrors.phone ?? state.fieldErrors?.phone}
                     value={phone}
-                    onChange={setPhone}
+                    onChange={(value) => {
+                      setPhone(value);
+                      if (contactErrors.phone) {
+                        setContactErrors((errors) => ({ ...errors, phone: undefined }));
+                      }
+                    }}
                     icon={<Phone className="h-5 w-5" strokeWidth={1.75} />}
                   />
                 </div>
@@ -458,14 +525,59 @@ export function RegistrationForm() {
                     </p>
                   )}
 
-                  <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
+                  {(turnstileState === "loading" || turnstileState === "verified") && (
+                    <TurnstileWidget
+                      key={turnstileKey}
+                      onToken={setTurnstileToken}
+                      onStateChange={setTurnstileState}
+                    />
+                  )}
+
+                  {turnstileState === "loading" && (
+                    <p role="status" className="text-sm text-muted">
+                      {registration.securityCheckLoading}
+                    </p>
+                  )}
+
+                  {(turnstileState === "configuration" ||
+                    turnstileState === "error" ||
+                    turnstileState === "expired") && (
+                    <div role="alert" className="rounded-2xl border border-accent/30 bg-accent-soft/50 p-4">
+                      <p className="text-sm leading-relaxed text-accent-hover">
+                        {turnstileState === "expired"
+                          ? registration.securityCheckExpired
+                          : registration.securityCheckError}
+                      </p>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        {turnstileState !== "configuration" && (
+                          <Button type="button" variant="secondary" onClick={resetTurnstile} className="px-5">
+                            {registration.securityCheckRetryLabel}
+                          </Button>
+                        )}
+                        <Button href={viberContact.deepLink} className="px-5">
+                          {registration.securityCheckViberLabel}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {state.status === "error" && state.message && (
-                <p aria-live="polite" className="mt-5 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-hover">
-                  {state.message}
-                </p>
+                <div
+                  aria-live="polite"
+                  className="mt-5 rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent-hover"
+                >
+                  <p>{state.message}</p>
+                  {!state.fieldErrors && (
+                    <a
+                      href={viberContact.deepLink}
+                      className="mt-2 inline-block font-semibold underline underline-offset-4"
+                    >
+                      {registration.securityCheckViberLabel}
+                    </a>
+                  )}
+                </div>
               )}
             </div>
 
@@ -474,7 +586,7 @@ export function RegistrationForm() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => setStepIndex((step) => Math.max(0, step - 1))}
+                  onClick={goBackOneStep}
                   className="gap-2 px-5"
                 >
                   <ArrowLeft aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -488,7 +600,7 @@ export function RegistrationForm() {
                 <Button
                   type="button"
                   disabled={stepIndex === 0 ? !canContinueFromContact : !canContinueFromPreferences}
-                  onClick={() => setStepIndex((step) => Math.min(registration.dialogSteps.length - 1, step + 1))}
+                  onClick={continueFromCurrentStep}
                   className="gap-2 px-5"
                 >
                   {registration.nextLabel}

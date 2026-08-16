@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { normalizeBulgarianPhone } from "@/lib/validation/phone";
+import { REGISTRATION_CONTACT_ERRORS } from "@/lib/validation/registration-contact";
 
 export const registrationSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, "Моля, въведи име, съдържащо поне 2 символа.")
-    .max(100, "Името е твърде дълго."),
+    .min(2, REGISTRATION_CONTACT_ERRORS.nameTooShort)
+    .max(100, REGISTRATION_CONTACT_ERRORS.nameTooLong),
   // No email is collected any more; the phone number is the identity.
   //
   // The raw input is generous about spacing and prefixes, but everything
@@ -18,14 +19,14 @@ export const registrationSchema = z.object({
     .trim()
     // Roomy enough for "+359 888 123 456" and similar; the normalised value
     // is always 13 characters.
-    .max(30, "Телефонният номер е твърде дълъг.")
+    .max(30, REGISTRATION_CONTACT_ERRORS.phoneTooLong)
     .transform((value, ctx) => {
       const normalized = normalizeBulgarianPhone(value);
 
       if (!normalized) {
         ctx.addIssue({
           code: "custom",
-          message: "Моля, въведи валиден телефонен номер (напр. 0888123456).",
+          message: REGISTRATION_CONTACT_ERRORS.phoneInvalid,
         });
         return z.NEVER;
       }

@@ -164,7 +164,7 @@ export interface SiteConfig {
   footer: {
     projectName: string;
     contactEmail: string;
-    instagramUrl: string;
+    instagramUrl: string | null;
     privacyPolicyHref: string;
     termsHref: string;
     medicalDisclaimer: string;

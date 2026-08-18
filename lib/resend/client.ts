@@ -27,4 +27,5 @@ if (EMAIL_FROM.includes("@resend.dev")) {
 }
 
 /** Inbox that receives new-lead notifications. */
-export const ADMIN_NOTIFICATION_EMAIL = process.env.RESEND_ADMIN_EMAIL || "hello@radoslava.fit";
+export const ADMIN_NOTIFICATION_EMAIL =
+  process.env.RESEND_ADMIN_EMAIL || "radislavova4@gmail.com";

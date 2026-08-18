@@ -6,7 +6,7 @@ admin and database changes as security-sensitive.
 
 ## Reporting a vulnerability
 
-Email **hello@radoslava.fit**. Do not open a public GitHub issue containing
+Email **radislavova4@gmail.com**. Do not open a public GitHub issue containing
 vulnerability details or personal data.
 
 ## Secrets and environment variables

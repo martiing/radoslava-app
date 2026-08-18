@@ -259,8 +259,9 @@ export const siteConfig = {
   },
   footer: {
     projectName: "Едномесечно предизвикателство с Радослава",
-    contactEmail: "hello@radoslava.fit",
-    instagramUrl: "https://instagram.com/radoslava.fit",
+    contactEmail: "radislavova4@gmail.com",
+    // Keep the link hidden until Radoslava's exact public profile is confirmed.
+    instagramUrl: null,
     privacyPolicyHref: "/politika-za-poveritelnost",
     privacyPolicyVersion: "2026-07-27",
     termsHref: "/obshti-usloviya",

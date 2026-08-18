@@ -17,16 +17,18 @@ export function Footer() {
                 {footer.contactEmail}
               </a>
             </p>
-            <p className="mt-1">
-              <a
-                href={footer.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright"
-              >
-                Instagram
-              </a>
-            </p>
+            {footer.instagramUrl && (
+              <p className="mt-1">
+                <a
+                  href={footer.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright"
+                >
+                  Instagram
+                </a>
+              </p>
+            )}
           </div>
           <nav aria-label="Правна информация" className="flex flex-col gap-2 sm:items-end">
             <a href={footer.privacyPolicyHref} className="inline-flex min-h-11 items-center transition-colors hover:text-accent-bright">

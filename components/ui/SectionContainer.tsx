@@ -23,7 +23,7 @@ export function SectionContainer({ id, headingId, className, children, tone = "l
       aria-labelledby={headingId}
       className={cn(
         wideContainer,
-        "my-6 scroll-mt-24 rounded-[2.5rem] border px-8 py-14 shadow-[0_1px_3px_rgba(27,22,38,0.04)] backdrop-blur-xl transition-colors duration-300 sm:my-10 sm:px-14 sm:py-20 lg:px-20",
+        "my-4 scroll-mt-24 rounded-[2rem] border px-6 py-10 shadow-[0_1px_3px_rgba(27,22,38,0.04)] backdrop-blur-xl transition-colors duration-300 sm:my-10 sm:rounded-[2.5rem] sm:px-14 sm:py-20 lg:px-20",
         toneClasses[tone],
         className
       )}

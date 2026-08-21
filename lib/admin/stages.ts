@@ -29,6 +29,18 @@ export const STAGE_LABELS: Record<ParticipantStage, string> = {
   cancelled: "Отказала се",
 };
 
+/** Tailwind classes per stage, ordered roughly cold -> warm -> done, so the pipeline reads at a glance. */
+export const STAGE_COLORS: Record<ParticipantStage, string> = {
+  registered: "bg-neutral-100 text-neutral-600",
+  quiz_completed: "bg-sky-100 text-sky-700",
+  emailed: "bg-indigo-100 text-indigo-700",
+  messaged_viber: "bg-amber-100 text-amber-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  added_to_group: "bg-green-100 text-green-800",
+  completed: "bg-violet-100 text-violet-700",
+  cancelled: "bg-red-100 text-red-700",
+};
+
 export const GOAL_REALISM_LABELS: Record<string, string> = {
   realistic: "Реалистична",
   ambitious: "Амбициозна",
@@ -54,4 +66,15 @@ const STAGE_TIMESTAMP_COLUMN: Partial<Record<ParticipantStage, string>> = {
 
 export function getStageTimestampColumn(stage: ParticipantStage): string | undefined {
   return STAGE_TIMESTAMP_COLUMN[stage];
+}
+
+/**
+ * Narrows an untrusted string to a known stage.
+ *
+ * Rows arrive from Supabase typed as plain strings, so this is the only place
+ * a `stage` value earns its type. Lives beside the catalogue it checks against,
+ * so adding a stage cannot leave the guard behind.
+ */
+export function isParticipantStage(value: unknown): value is ParticipantStage {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(STAGE_LABELS, value);
 }

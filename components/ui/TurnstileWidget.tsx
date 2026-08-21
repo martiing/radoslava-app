@@ -7,7 +7,8 @@ interface TurnstileRenderOptions {
   sitekey: string;
   callback: (token: string) => void;
   "expired-callback": () => void;
-  "error-callback": () => void;
+  "error-callback": (errorCode?: string) => void;
+  "timeout-callback": () => void;
   size: "flexible" | "normal" | "compact";
   theme: "light" | "dark" | "auto";
   language: string;
@@ -25,7 +26,11 @@ declare global {
 interface TurnstileWidgetProps {
   /** Called with the token once Cloudflare issues one, and with "" when it expires. */
   onToken: (token: string) => void;
+  /** Gives the form a visible recovery path instead of leaving submit disabled forever. */
+  onStateChange?: (state: TurnstileWidgetState) => void;
 }
+
+export type TurnstileWidgetState = "loading" | "verified" | "expired" | "error";
 
 /**
  * Cloudflare Turnstile challenge. Renders a managed widget that stays invisible
@@ -39,11 +44,12 @@ interface TurnstileWidgetProps {
  * Turnstile tokens are single-use, so after a rejected submission the caller
  * must remount this component (change its `key`) to get a fresh challenge.
  */
-export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
+export function TurnstileWidget({ onToken, onStateChange }: TurnstileWidgetProps) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const onTokenRef = useRef(onToken);
+  const onStateChangeRef = useRef(onStateChange);
   const [scriptReady, setScriptReady] = useState(false);
   const containerId = useId();
 
@@ -51,6 +57,14 @@ export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
   useEffect(() => {
     onTokenRef.current = onToken;
   }, [onToken]);
+
+  useEffect(() => {
+    onStateChangeRef.current = onStateChange;
+  }, [onStateChange]);
+
+  useEffect(() => {
+    if (siteKey) onStateChangeRef.current?.("loading");
+  }, [siteKey]);
 
   const handleScriptReady = useCallback(() => setScriptReady(true), []);
 
@@ -62,15 +76,35 @@ export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
     const turnstile = window.turnstile;
     if (!turnstile) return;
 
-    widgetIdRef.current = turnstile.render(containerRef.current, {
-      sitekey: siteKey,
-      callback: (token) => onTokenRef.current(token),
-      "expired-callback": () => onTokenRef.current(""),
-      "error-callback": () => onTokenRef.current(""),
-      size: "flexible",
-      theme: "auto",
-      language: "bg",
-    });
+    try {
+      widgetIdRef.current = turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: (token) => {
+          onTokenRef.current(token);
+          onStateChangeRef.current?.("verified");
+        },
+        "expired-callback": () => {
+          onTokenRef.current("");
+          onStateChangeRef.current?.("expired");
+        },
+        "timeout-callback": () => {
+          onTokenRef.current("");
+          onStateChangeRef.current?.("expired");
+        },
+        "error-callback": (errorCode) => {
+          onTokenRef.current("");
+          onStateChangeRef.current?.("error");
+          console.warn("[turnstile] widget_error", { code: errorCode ?? "unknown" });
+        },
+        size: "flexible",
+        theme: "auto",
+        language: "bg",
+      });
+    } catch {
+      onTokenRef.current("");
+      onStateChangeRef.current?.("error");
+      return;
+    }
 
     return () => {
       const id = widgetIdRef.current;
@@ -87,8 +121,12 @@ export function TurnstileWidget({ onToken }: TurnstileWidgetProps) {
     <>
       <Script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onReady={handleScriptReady}
+        onError={() => {
+          onTokenRef.current("");
+          onStateChangeRef.current?.("error");
+        }}
       />
       <div ref={containerRef} id={containerId} />
     </>

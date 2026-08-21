@@ -64,6 +64,21 @@ export async function proxy(request: NextRequest) {
   const createPassThroughResponse = () =>
     withCsp(NextResponse.next({ request: { headers: requestHeaders } }), csp);
 
+  // The plan page is reached with a bearer token in the URL. Keep it out of
+  // caches, out of search indexes, and out of the referrer header of anything
+  // it links to — a referrer would hand the token to the destination.
+  //
+  // Set here rather than in next.config.ts so Referrer-Policy replaces the
+  // site-wide value for this path instead of being emitted alongside it.
+  const isPlanRoute = pathname === "/plan" || pathname.startsWith("/plan/");
+  if (isPlanRoute) {
+    const response = createPassThroughResponse();
+    response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
+
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminLogin = pathname === "/admin/login";
 

@@ -2,14 +2,21 @@ import "server-only";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { createHash } from "node:crypto";
+import { describeError } from "@/lib/security/describe-error";
 
 /**
  * Rate limiting for the public registration form.
  *
- * Two independent limits, both must pass:
- *   - per IP:    catches a single machine hammering the form
- *   - per email: catches a distributed attempt to spam one address, and stops
- *                someone from probing the duplicate-detection path repeatedly
+ * Two independent limits, checked at different points rather than together:
+ *
+ *   - per IP, before Turnstile: catches a single machine hammering the form
+ *     cheaply, without spending a Cloudflare verification on it.
+ *   - per phone, after Turnstile: catches repeated submissions for one number.
+ *
+ * The order matters. The phone limit is only reachable once a request has
+ * proved it is human, and its rejection is deliberately indistinguishable from
+ * success at the caller (see registerAction) — otherwise the limit itself
+ * becomes an oracle telling an attacker which numbers are already registered.
  *
  * Availability trade-off: if Upstash itself is unreachable we FAIL OPEN and let
  * the request through. A Redis outage must not take the lead form offline —
@@ -18,26 +25,32 @@ import { createHash } from "node:crypto";
  */
 
 const IP_LIMIT = { requests: 5, window: "10 m" } as const;
-const EMAIL_LIMIT = { requests: 3, window: "24 h" } as const;
+const PHONE_LIMIT = { requests: 3, window: "24 h" } as const;
+const PORTAL_REGISTER_IP_LIMIT = { requests: 5, window: "10 m" } as const;
+const PORTAL_REGISTER_EMAIL_LIMIT = { requests: 3, window: "24 h" } as const;
 const ADMIN_LOGIN_LIMIT = { requests: 5, window: "15 m" } as const;
 const CLIENT_LOGIN_IP_LIMIT = { requests: 10, window: "15 m" } as const;
 const CLIENT_LOGIN_EMAIL_LIMIT = { requests: 5, window: "15 m" } as const;
 
 let ipLimiter: Ratelimit | null = null;
-let emailLimiter: Ratelimit | null = null;
+let phoneLimiter: Ratelimit | null = null;
 let adminLoginLimiter: Ratelimit | null = null;
 let clientLoginIpLimiter: Ratelimit | null = null;
 let clientLoginEmailLimiter: Ratelimit | null = null;
+let portalRegisterIpLimiter: Ratelimit | null = null;
+let portalRegisterEmailLimiter: Ratelimit | null = null;
 let initialised = false;
 
 function getLimiters() {
   if (initialised) {
     return {
       ipLimiter,
-      emailLimiter,
+      phoneLimiter,
       adminLoginLimiter,
       clientLoginIpLimiter,
       clientLoginEmailLimiter,
+      portalRegisterIpLimiter,
+      portalRegisterEmailLimiter,
     };
   }
   initialised = true;
@@ -51,10 +64,12 @@ function getLimiters() {
     );
     return {
       ipLimiter: null,
-      emailLimiter: null,
+      phoneLimiter: null,
       adminLoginLimiter: null,
       clientLoginIpLimiter: null,
       clientLoginEmailLimiter: null,
+      portalRegisterIpLimiter: null,
+      portalRegisterEmailLimiter: null,
     };
   }
 
@@ -67,10 +82,10 @@ function getLimiters() {
     analytics: false,
   });
 
-  emailLimiter = new Ratelimit({
+  phoneLimiter = new Ratelimit({
     redis,
-    prefix: "ratelimit:register:email",
-    limiter: Ratelimit.slidingWindow(EMAIL_LIMIT.requests, EMAIL_LIMIT.window),
+    prefix: "ratelimit:register:phone",
+    limiter: Ratelimit.slidingWindow(PHONE_LIMIT.requests, PHONE_LIMIT.window),
     analytics: false,
   });
 
@@ -98,13 +113,89 @@ function getLimiters() {
     analytics: false,
   });
 
+  portalRegisterIpLimiter = new Ratelimit({
+    redis,
+    prefix: "ratelimit:portal-register:ip",
+    limiter: Ratelimit.slidingWindow(
+      PORTAL_REGISTER_IP_LIMIT.requests,
+      PORTAL_REGISTER_IP_LIMIT.window
+    ),
+    analytics: false,
+  });
+
+  portalRegisterEmailLimiter = new Ratelimit({
+    redis,
+    prefix: "ratelimit:portal-register:email",
+    limiter: Ratelimit.slidingWindow(
+      PORTAL_REGISTER_EMAIL_LIMIT.requests,
+      PORTAL_REGISTER_EMAIL_LIMIT.window
+    ),
+    analytics: false,
+  });
+
   return {
     ipLimiter,
-    emailLimiter,
+    phoneLimiter,
     adminLoginLimiter,
     clientLoginIpLimiter,
     clientLoginEmailLimiter,
+    portalRegisterIpLimiter,
+    portalRegisterEmailLimiter,
   };
+}
+
+/**
+ * Portal account creation keeps budgets separate from the challenge intake.
+ *
+ * Sharing the challenge limiters would let one flow spend the other's
+ * allowance: a burst of portal sign-ups would start rejecting people trying to
+ * join the challenge, for no reason they could see.
+ *
+ * Split into two gates for the same reason the intake is — see registerAction.
+ * The IP gate runs first and cheaply; the email gate runs only after Turnstile,
+ * and its rejection must be silent, or anyone can burn another person's budget
+ * and read the difference as "this address is registered".
+ */
+export async function checkPortalRegistrationIpRateLimit(
+  ip: string | null
+): Promise<RateLimitResult> {
+  const { portalRegisterIpLimiter: limiter } = getLimiters();
+
+  if (!limiter) {
+    return { allowed: true, degraded: true };
+  }
+
+  try {
+    const result = await limiter.limit(hashIdentifier(ip ?? "unknown"));
+    return { allowed: result.success, degraded: false };
+  } catch (error) {
+    console.error(
+      "[security] Portal registration IP rate limit check failed, allowing request:",
+      describeError(error)
+    );
+    return { allowed: true, degraded: true };
+  }
+}
+
+export async function checkPortalRegistrationEmailRateLimit(
+  email: string
+): Promise<RateLimitResult> {
+  const { portalRegisterEmailLimiter: limiter } = getLimiters();
+
+  if (!limiter) {
+    return { allowed: true, degraded: true };
+  }
+
+  try {
+    const result = await limiter.limit(hashIdentifier(email));
+    return { allowed: result.success, degraded: false };
+  } catch (error) {
+    console.error(
+      "[security] Portal registration email rate limit check failed, allowing request:",
+      describeError(error)
+    );
+    return { allowed: true, degraded: true };
+  }
 }
 
 export async function checkAdminLoginRateLimit(ip: string | null): Promise<RateLimitResult> {
@@ -118,9 +209,7 @@ export async function checkAdminLoginRateLimit(ip: string | null): Promise<RateL
     const result = await limiter.limit(hashIdentifier(ip ?? "unknown"));
     return { allowed: result.success, degraded: false };
   } catch (error) {
-    console.error("[security] Admin login rate limit check failed, allowing request:", {
-      reason: error instanceof Error ? error.message : "unknown",
-    });
+    console.error("[security] Admin login rate limit check failed, allowing request:", describeError(error));
     return { allowed: true, degraded: true };
   }
 }
@@ -142,9 +231,7 @@ export async function checkClientLoginRateLimit(
     ]);
     return { allowed: ipResult.success && emailResult.success, degraded: false };
   } catch (error) {
-    console.error("[security] Client login rate limit check failed, allowing request:", {
-      reason: error instanceof Error ? error.message : "unknown",
-    });
+    console.error("[security] Client login rate limit check failed, allowing request:", describeError(error));
     return { allowed: true, degraded: true };
   }
 }
@@ -164,32 +251,53 @@ export interface RateLimitResult {
   degraded: boolean;
 }
 
-export async function checkRegistrationRateLimit(
-  ip: string | null,
-  email: string
-): Promise<RateLimitResult> {
-  const { ipLimiter: ipRl, emailLimiter: emailRl } = getLimiters();
+/**
+ * First gate on the registration form, before Turnstile is consulted.
+ *
+ * An unknown IP falls back to a shared bucket, which is deliberately strict
+ * rather than a free pass.
+ */
+export async function checkRegistrationIpRateLimit(ip: string | null): Promise<RateLimitResult> {
+  const { ipLimiter: limiter } = getLimiters();
 
-  if (!ipRl || !emailRl) {
+  if (!limiter) {
     return { allowed: true, degraded: true };
   }
 
   try {
-    // The IP is only ever hashed; an unknown IP falls back to a shared bucket,
-    // which is deliberately strict rather than a free pass.
-    const ipKey = hashIdentifier(ip ?? "unknown");
-    const emailKey = hashIdentifier(email);
-
-    const [ipResult, emailResult] = await Promise.all([
-      ipRl.limit(ipKey),
-      emailRl.limit(emailKey),
-    ]);
-
-    return { allowed: ipResult.success && emailResult.success, degraded: false };
+    const result = await limiter.limit(hashIdentifier(ip ?? "unknown"));
+    return { allowed: result.success, degraded: false };
   } catch (error) {
-    console.error("[security] Rate limit check failed, allowing request:", {
-      reason: error instanceof Error ? error.message : "unknown",
-    });
+    console.error("[security] Registration IP rate limit check failed, allowing request:", describeError(error));
+    return { allowed: true, degraded: true };
+  }
+}
+
+/**
+ * Second gate, reached only after Turnstile has passed.
+ *
+ * The caller must treat a rejection here as a *silent* outcome — see
+ * registerAction. Surfacing it would tell an attacker that a given number has
+ * already been submitted, which is exactly the disclosure the identical
+ * duplicate response exists to prevent.
+ *
+ * Expects the phone number already in canonical form (lib/validation/phone.ts);
+ * two spellings of one number would otherwise get two separate budgets.
+ */
+export async function checkRegistrationPhoneRateLimit(
+  canonicalPhone: string
+): Promise<RateLimitResult> {
+  const { phoneLimiter: limiter } = getLimiters();
+
+  if (!limiter) {
+    return { allowed: true, degraded: true };
+  }
+
+  try {
+    const result = await limiter.limit(hashIdentifier(canonicalPhone));
+    return { allowed: result.success, degraded: false };
+  } catch (error) {
+    console.error("[security] Registration phone rate limit check failed, allowing request:", describeError(error));
     return { allowed: true, degraded: true };
   }
 }

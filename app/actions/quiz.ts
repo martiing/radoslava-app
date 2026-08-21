@@ -3,8 +3,10 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { quizSchema, type QuizFieldErrors } from "@/lib/validation/quiz-schema";
 import { computeGoalRealism } from "@/lib/quiz/scoring";
+import { getTrainingTrack } from "@/lib/plan/assignment";
 import { getResendClient, EMAIL_FROM } from "@/lib/resend/client";
 import { buildPersonalizedWelcomeEmail } from "@/lib/email/templates";
+import { describeError } from "@/lib/security/describe-error";
 import { siteConfig } from "@/content/site-config";
 import { verifyQuizSessionToken } from "@/lib/quiz/session";
 import type { QuizAnswers } from "@/types/quiz";
@@ -26,6 +28,7 @@ export async function submitQuizAction(
     targetWeightKg: formData.get("targetWeightKg") || undefined,
     activityLevel: formData.get("activityLevel"),
     weeklyCommitment: formData.get("weeklyCommitment"),
+    trainingTrack: formData.get("trainingTrack"),
     primaryFocus: formData.get("primaryFocus"),
     hasLimitations: formData.get("hasLimitations"),
     limitationsNote: formData.get("limitationsNote") || undefined,
@@ -64,6 +67,7 @@ export async function submitQuizAction(
     targetWeightKg: data.targetWeightKg,
     activityLevel: data.activityLevel,
     weeklyCommitment: data.weeklyCommitment,
+    trainingTrack: data.trainingTrack,
     primaryFocus: data.primaryFocus,
     hasLimitations: data.hasLimitations === "yes",
     limitationsNote: data.limitationsNote,
@@ -119,8 +123,10 @@ export async function submitQuizAction(
       const resend = getResendClient();
       const email = buildPersonalizedWelcomeEmail({
         name: participant.name,
+        goal: answers.goal,
         goalRealism,
         primaryFocus: answers.primaryFocus,
+        trainingTrack: getTrainingTrack(answers),
         hasLimitations: answers.hasLimitations,
       });
 
@@ -151,9 +157,9 @@ export async function submitQuizAction(
 
     return { status: "success", message: siteConfig.quiz.successMessage };
   } catch (submissionError) {
-    console.error("[quiz] Submission failed:", {
-      reason: submissionError instanceof Error ? submissionError.message : "unknown",
-    });
+    // Provider messages can include query detail or submitted values. Keep
+    // public-flow logs diagnostic without accumulating participant data.
+    console.error("[quiz] Submission failed:", describeError(submissionError));
     return {
       status: "error",
       message: "Възникна грешка. Моля, опитай отново след малко.",

@@ -1,26 +1,47 @@
 import { z } from "zod";
-
-const bulgarianPhonePattern = /^(\+359|0)\d{9}$/;
+import { normalizeBulgarianPhone } from "@/lib/validation/phone";
+import { REGISTRATION_CONTACT_ERRORS } from "@/lib/validation/registration-contact";
 
 export const registrationSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, "Моля, въведи име, съдържащо поне 2 символа.")
-    .max(100, "Името е твърде дълго."),
-  email: z
-    .string()
-    .trim()
-    .min(1, "Моля, въведи имейл адрес.")
-    // RFC 5321 caps an address at 254 characters; without this an attacker can
-    // push arbitrarily long strings straight into the database.
-    .max(254, "Имейл адресът е твърде дълъг.")
-    .email("Моля, въведи валиден имейл адрес."),
+    .min(2, REGISTRATION_CONTACT_ERRORS.nameTooShort)
+    .max(100, REGISTRATION_CONTACT_ERRORS.nameTooLong),
+  // No email is collected any more; the phone number is the identity.
+  //
+  // The raw input is generous about spacing and prefixes, but everything
+  // downstream — the unique index, the duplicate check, the rate limiter —
+  // sees only the canonical E.164 form produced here. Normalising at the
+  // schema boundary means no caller can accidentally skip it.
   phone: z
     .string()
     .trim()
-    .max(20, "Телефонният номер е твърде дълъг.")
-    .regex(bulgarianPhonePattern, "Моля, въведи валиден телефонен номер (напр. 0888123456)."),
+    // Roomy enough for "+359 888 123 456" and similar; the normalised value
+    // is always 13 characters.
+    .max(30, REGISTRATION_CONTACT_ERRORS.phoneTooLong)
+    .transform((value, ctx) => {
+      const normalized = normalizeBulgarianPhone(value);
+
+      if (!normalized) {
+        ctx.addIssue({
+          code: "custom",
+          message: REGISTRATION_CONTACT_ERRORS.phoneInvalid,
+        });
+        return z.NEVER;
+      }
+
+      return normalized;
+    }),
+  primaryGoal: z.enum(["weight_loss", "tone_and_shape", "muscle_gain", "general_health"], {
+    message: "Моля, избери основната си цел.",
+  }),
+  trainingTrack: z.enum(["gym", "home", "both"], {
+    message: "Моля, избери къде ще тренираш.",
+  }),
+  experienceLevel: z.enum(["beginner", "intermediate", "advanced"], {
+    message: "Моля, избери нивото си на опит.",
+  }),
   consent: z.literal("on", {
     message: "Трябва да се съгласиш с политиката за поверителност.",
   }),

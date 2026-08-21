@@ -6,7 +6,7 @@ admin and database changes as security-sensitive.
 
 ## Reporting a vulnerability
 
-Email **hello@radoslava.fit**. Do not open a public GitHub issue containing
+Email **radislavova4@gmail.com**. Do not open a public GitHub issue containing
 vulnerability details or personal data.
 
 ## Secrets and environment variables
@@ -95,6 +95,8 @@ Migrations run in this order:
 4. `0004_harden_participants.sql`
 5. `0005_retention_and_consent_version.sql`
 6. `0006_link_participants_to_auth.sql`
+7. `0007_five_question_intake.sql`
+8. `0008_normalize_participant_phones.sql`
 
 RLS is enabled with zero public policies and grants are revoked from `anon` and
 `authenticated`. Current reads and writes use the server-only Supabase client.
@@ -103,6 +105,10 @@ The retention job deletes only old, unconverted participants with no recorded
 payment. It deliberately excludes paid/active records. The 12-month interval
 must match the approved privacy policy. Enable `pg_cron` before applying
 migration `0005`.
+
+Migration `0008` canonicalizes phones to Bulgarian E.164. It intentionally
+aborts if legacy values are unrecognized or if multiple rows collapse to the
+same number; resolve those records manually before retrying it.
 
 ## Logging
 

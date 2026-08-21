@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarClock, Users, Wallet } from "lucide-react";
+import { CalendarDays, CalendarClock, Wallet } from "lucide-react";
 import { siteConfig } from "@/content/site-config";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -27,13 +27,34 @@ export function Hero() {
           </div>
           <h1
             id="hero-heading"
-            className="animate-fade-up mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl"
+            className="animate-fade-up mt-4 font-display text-[2rem] font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl"
             style={{ animationDelay: "80ms" }}
           >
             {hero.headline}
           </h1>
+
+          <div
+            className="animate-fade-up relative mx-auto mt-6 w-full max-w-md sm:hidden"
+            style={{ animationDelay: "140ms" }}
+          >
+            <div
+              aria-hidden="true"
+              className="animate-blob-drift absolute -inset-4 -z-10 rounded-full bg-gradient-to-br from-accent-bright via-accent to-lime opacity-30 blur-2xl"
+            />
+            <PlaceholderImage
+              src={hero.photoSrc}
+              alt="Радослава"
+              label="Снимка на Радослава — предстои"
+              aspectRatio="5/4"
+              sizes="calc(100vw - 3rem)"
+              priority
+              rounded="rounded-[1.75rem]"
+              className="shadow-xl shadow-accent/10"
+            />
+          </div>
+
           <p
-            className="animate-fade-up mt-4 max-w-md text-lg leading-relaxed text-muted"
+            className="animate-fade-up mt-4 max-w-md text-base leading-relaxed text-muted sm:text-lg"
             style={{ animationDelay: "180ms" }}
           >
             {hero.subheadline}
@@ -43,27 +64,22 @@ export function Hero() {
             <Button href="#registration" variant="primary">
               {hero.ctaPrimaryLabel}
             </Button>
-            <Button href="#challenge" variant="secondary">
-              {hero.ctaSecondaryLabel}
+            <Button href="#offer" variant="secondary">
+              <span className="sm:hidden">Виж как работи</span>
+              <span className="hidden sm:inline">{hero.ctaSecondaryLabel}</span>
             </Button>
           </div>
 
-          <dl className="animate-fade-up mt-7 flex flex-wrap items-center gap-3" style={{ animationDelay: "380ms" }}>
-            <div className="flex items-center gap-2.5 rounded-2xl border border-accent/20 bg-accent-soft/70 px-4 py-2.5">
-              <Users aria-hidden="true" className="h-5 w-5 shrink-0 text-accent-hover" strokeWidth={1.75} />
-              <dt className="sr-only">Ограничен брой места</dt>
-              <dd className="text-sm font-semibold text-accent-hover">Ограничен брой места: {hero.capacity}</dd>
-            </div>
-
+          <dl className="animate-fade-up mt-7 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3" style={{ animationDelay: "380ms" }}>
             {stats.map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
-                className="flex items-center gap-2.5 rounded-2xl border border-white/60 bg-surface/60 px-4 py-2.5 backdrop-blur-sm"
+                className="flex min-w-0 flex-col items-center gap-1.5 rounded-2xl border border-white/60 bg-surface/60 px-2 py-3 text-center backdrop-blur-sm sm:flex-row sm:gap-2.5 sm:px-4 sm:py-2.5 sm:text-left"
               >
-                <Icon aria-hidden="true" className="h-5 w-5 shrink-0 text-accent" strokeWidth={1.75} />
+                <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-accent sm:h-5 sm:w-5" strokeWidth={1.75} />
                 <div className="leading-tight">
-                  <dt className="text-[11px] uppercase tracking-wide text-muted">{label}</dt>
-                  <dd className="text-sm font-semibold text-foreground">{value}</dd>
+                  <dt className="text-[9px] uppercase tracking-wide text-muted sm:text-[11px]">{label}</dt>
+                  <dd className="mt-1 text-xs font-semibold text-foreground sm:mt-0 sm:text-sm">{value}</dd>
                 </div>
               </div>
             ))}
@@ -71,7 +87,7 @@ export function Hero() {
         </div>
 
         <div
-          className="animate-fade-up relative mx-auto w-full max-w-[17rem] sm:max-w-[21rem] lg:max-w-[24rem]"
+          className="animate-fade-up relative mx-auto hidden w-full max-w-[17rem] sm:block sm:max-w-[21rem] lg:max-w-[24rem]"
           style={{ animationDelay: "150ms" }}
         >
           <div

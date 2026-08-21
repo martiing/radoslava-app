@@ -40,7 +40,7 @@ export function Accordion({ items, tone = "light" }: AccordionProps) {
                 aria-controls={panelId}
                 onClick={() => setOpenIndex(isOpen ? null : index)}
                 className={cn(
-                  "flex w-full items-center justify-between gap-4 px-6 py-5 text-left text-base font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
+                  "flex min-h-11 w-full items-center justify-between gap-3 px-4 py-4 text-left text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset sm:gap-4 sm:px-6 sm:py-5 sm:text-base",
                   isDark ? "text-white hover:bg-white/5" : "text-foreground hover:bg-accent-soft/30"
                 )}
               >
@@ -71,7 +71,7 @@ export function Accordion({ items, tone = "light" }: AccordionProps) {
                   id={panelId}
                   role="region"
                   aria-labelledby={buttonId}
-                  className={cn("px-6 pb-5", isDark ? "text-white/60" : "text-muted")}
+                  className={cn("px-4 pb-4 text-sm leading-relaxed sm:px-6 sm:pb-5 sm:text-base", isDark ? "text-white/60" : "text-muted")}
                 >
                   {item.answer}
                 </div>

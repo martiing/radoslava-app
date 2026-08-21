@@ -1,4 +1,5 @@
 import "server-only";
+import { describeError } from "@/lib/security/describe-error";
 
 /**
  * Cloudflare Turnstile verification.
@@ -67,9 +68,7 @@ export async function verifyTurnstileToken(
     return true;
   } catch (error) {
     // A Cloudflare outage or timeout must not become an open door.
-    console.error("[security] Turnstile verification failed:", {
-      reason: error instanceof Error ? error.message : "unknown",
-    });
+    console.error("[security] Turnstile verification failed:", describeError(error));
     return false;
   }
 }

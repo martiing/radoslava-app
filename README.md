@@ -59,6 +59,10 @@ the retention interval matches the approved privacy policy. Migration `0006`
 links client accounts to participants; it is intentionally nullable until the
 legacy invite/claim flow is shipped.
 
+Migration `0008` normalizes participant phones to Bulgarian E.164 and aborts
+without changing data if it finds an invalid legacy value or a canonical
+duplicate. Resolve those rows manually, then rerun the migration.
+
 ## Supabase Auth setup
 
 Before enabling `/portal` in production:

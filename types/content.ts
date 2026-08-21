@@ -2,33 +2,52 @@ export interface PainPoint {
   text: string;
 }
 
-export interface ChallengeFeature {
-  title: string;
-  description: string;
-}
-
-export interface Testimonial {
-  id: string;
+export interface ResultClient {
   name: string;
-  timeframe: string;
+  beforeSrc: string;
+  afterSrc: string;
   quote: string;
-  beforeSrc: string | null;
-  afterSrc: string | null;
-}
-
-export interface Step {
-  title: string;
-  description: string;
-}
-
-export interface Benefit {
-  title: string;
-  description: string;
 }
 
 export interface FaqItem {
   question: string;
   answer: string;
+}
+
+export interface OfferValueItem {
+  text: string;
+}
+
+export interface OfferDayPreview {
+  heading: string;
+  toggleHomeLabel: string;
+  toggleGymLabel: string;
+  mealLine: string;
+  workoutHomeLine: string;
+  workoutGymLine: string;
+  doneLine: string;
+}
+
+export interface OfferPrice {
+  amount: string;
+  period: string;
+  note: string;
+}
+
+export interface FitCheckChip {
+  id: string;
+  problem: string;
+  solution: string;
+}
+
+export interface RegistrationFlowStep {
+  title: string;
+  body: string;
+}
+
+export interface RegistrationDialogStep {
+  title: string;
+  body: string;
 }
 
 export interface SiteConfig {
@@ -40,6 +59,7 @@ export interface SiteConfig {
   header: {
     brandShort: string;
     brandFull: string;
+    brandMobile: string;
     ctaLabel: string;
   };
   hero: {
@@ -48,7 +68,6 @@ export interface SiteConfig {
     subheadline: string;
     ctaPrimaryLabel: string;
     ctaSecondaryLabel: string;
-    capacity: string;
     startDate: string;
     registrationDeadline: string;
     price: string;
@@ -59,48 +78,64 @@ export interface SiteConfig {
     intro: string;
     items: PainPoint[];
   };
-  challenge: {
+  offerBlock: {
+    eyebrow: string;
     heading: string;
-    intro: string;
-    disclaimer: string;
-    features: ChallengeFeature[];
+    subhead: string;
+    valuesLabel: string;
+    values: OfferValueItem[];
+    dayPreview: OfferDayPreview;
+    price: OfferPrice;
+    ctaLabel: string;
+    guarantee: string;
   };
-  aboutRadoslava: {
+  fitCheck: {
     heading: string;
+    subhead: string;
+    chipsLabel: string;
+    defaultPanelText: string;
+    chips: FitCheckChip[];
+  };
+  meetRadoslava: {
+    heading: string;
+    subhead: string;
     photoSrc: string | null;
-    story: string[];
-    qualifications: string;
-    experience: string;
-    clientCount: string;
-  };
-  clientResults: {
-    heading: string;
-    intro: string;
-    disclaimer: string;
-    testimonials: Testimonial[];
-  };
-  howItWorks: {
-    heading: string;
-    steps: Step[];
-  };
-  whatYouGet: {
-    heading: string;
-    benefits: Benefit[];
-    bonus: string;
+    bio: string;
+    credentialBadge: string;
+    credentials: string[];
+    results: {
+      clients: ResultClient[];
+      disclaimer: string;
+    };
   };
   limitedSpots: {
     heading: string;
     reasonText: string;
     registrationDeadline: string;
-    capacity: string;
     ctaLabel: string;
   };
   registration: {
     heading: string;
     intro: string;
-    successMessage: string;
+    ctaLabel: string;
+    flowHeading: string;
+    flowSteps: RegistrationFlowStep[];
+    dialogTitle: string;
+    dialogIntro: string;
+    dialogSteps: RegistrationDialogStep[];
+    nextLabel: string;
+    backLabel: string;
+    closeLabel: string;
     privacyLabel: string;
     submitLabel: string;
+    securityCheckLoading: string;
+    securityCheckError: string;
+    securityCheckExpired: string;
+    securityCheckRetryLabel: string;
+    securityCheckViberLabel: string;
+    successHeading: string;
+    successBody: string;
+    viberButtonLabel: string;
   };
   quiz: {
     heading: string;
@@ -120,10 +155,16 @@ export interface SiteConfig {
     body: string;
     ctaLabel: string;
   };
+  viberContact: {
+    /** Local display format, e.g. "0896 273 376". */
+    phoneDisplay: string;
+    /** viber://chat deep link straight to Radoslava's contact. */
+    deepLink: string;
+  };
   footer: {
     projectName: string;
     contactEmail: string;
-    instagramUrl: string;
+    instagramUrl: string | null;
     privacyPolicyHref: string;
     termsHref: string;
     medicalDisclaimer: string;

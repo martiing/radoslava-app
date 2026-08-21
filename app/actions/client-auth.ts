@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { siteConfig } from "@/content/site-config";
 import { getAuthenticatedUser } from "@/lib/client/auth";
 import { getSafePortalRedirect } from "@/lib/client/redirect";
-import { checkClientLoginRateLimit, checkRegistrationRateLimit } from "@/lib/security/rate-limit";
+import {
+  checkClientLoginRateLimit,
+  checkPortalRegistrationEmailRateLimit,
+  checkPortalRegistrationIpRateLimit,
+} from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/request-ip";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { createSupabaseAuthServerClient } from "@/lib/supabase/auth-server";
@@ -23,6 +27,17 @@ export interface ClientAuthState {
   message?: string;
   fieldErrors?: ClientAuthFieldErrors;
 }
+
+/**
+ * The answer to every registration attempt whose outcome must not be
+ * disclosed: an address already taken, an address that hit its rate limit, an
+ * address that was accepted. All three look like this, so the form cannot be
+ * used to find out who has an account.
+ */
+const NEUTRAL_REGISTRATION_RESULT: ClientAuthState = {
+  status: "success",
+  message: "Ако адресът може да бъде регистриран, ще получиш имейл с потвърждение.",
+};
 
 function firstFieldErrors(issues: Array<{ path: PropertyKey[]; message: string }>) {
   const fieldErrors: ClientAuthFieldErrors = {};
@@ -97,19 +112,33 @@ export async function clientRegisterAction(
 
   const { name, email, phone, password } = parsed.data;
   const ip = await getClientIp();
-  const rateLimit = await checkRegistrationRateLimit(ip, email);
-  if (!rateLimit.allowed) {
+  // Gate 1 — per IP, before spending a Turnstile verification.
+  const ipLimit = await checkPortalRegistrationIpRateLimit(ip);
+  if (!ipLimit.allowed) {
     return {
       status: "error",
       message: "Твърде много заявки. Опитай отново по-късно.",
     };
   }
 
+  // Gate 2 — proof of a human.
   if (!(await verifyTurnstileToken(formData.get("turnstileToken"), ip))) {
     return {
       status: "error",
       message: "Не успяхме да потвърдим заявката. Презареди страницата и опитай отново.",
     };
+  }
+
+  // Gate 3 — per email, and silent.
+  //
+  // Answering "too many requests" here would say that this address has been
+  // submitted before, which is the same disclosure the neutral success below
+  // exists to prevent. Reachable only after Turnstile, so exhausting somebody
+  // else's budget is no longer cheap.
+  const emailLimit = await checkPortalRegistrationEmailRateLimit(email);
+  if (!emailLimit.allowed) {
+    console.warn("[client-auth] portal_register_email_rate_limit_hit");
+    return NEUTRAL_REGISTRATION_RESULT;
   }
 
   const serviceClient = getSupabaseServerClient();
@@ -130,10 +159,7 @@ export async function clientRegisterAction(
 
   const authUser = signUpData.user;
   if (!authUser || authUser.identities?.length === 0) {
-    return {
-      status: "success",
-      message: "Ако адресът може да бъде регистриран, ще получиш имейл с потвърждение.",
-    };
+    return NEUTRAL_REGISTRATION_RESULT;
   }
 
   const { data: existingParticipant, error: lookupError } = await serviceClient

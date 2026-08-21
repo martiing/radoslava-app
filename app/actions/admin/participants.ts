@@ -6,7 +6,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getStageTimestampColumn, type ParticipantStage } from "@/lib/admin/stages";
 import { getResendClient, EMAIL_FROM } from "@/lib/resend/client";
 import { buildPersonalizedWelcomeEmail } from "@/lib/email/templates";
-import type { GoalRealism, PrimaryFocus } from "@/types/quiz";
+import { getTrainingTrack } from "@/lib/plan/assignment";
+import type { GoalRealism, PrimaryFocus, QuizAnswers } from "@/types/quiz";
 
 export async function updateParticipantStage(participantId: string, stage: ParticipantStage): Promise<void> {
   await requireAdmin();
@@ -34,6 +35,7 @@ export async function updateParticipantStage(participantId: string, stage: Parti
   });
 
   revalidatePath(`/admin/participants/${participantId}`);
+  revalidatePath("/admin/participants");
   revalidatePath("/admin");
 }
 
@@ -89,7 +91,7 @@ export async function resendPersonalizedEmail(participantId: string): Promise<vo
   const supabase = getSupabaseServerClient();
   const { data: participant, error } = await supabase
     .from("participants")
-    .select("id, name, email, goal_realism, goal_realism_override, primary_focus, has_limitations")
+    .select("id, name, email, goal_realism, goal_realism_override, primary_focus, has_limitations, quiz_answers")
     .eq("id", participantId)
     .single();
 
@@ -97,14 +99,20 @@ export async function resendPersonalizedEmail(participantId: string): Promise<vo
   if (!participant.primary_focus) {
     throw new Error("Participant hasn't completed the quiz yet — nothing to personalize.");
   }
+  if (!participant.email) {
+    throw new Error("Participant has no email on file — registered through the phone-only intake.");
+  }
 
   const goalRealism: GoalRealism = (participant.goal_realism_override ?? participant.goal_realism ?? "realistic") as GoalRealism;
+  const quizAnswers = participant.quiz_answers as QuizAnswers | null;
 
   const resend = getResendClient();
   const email = buildPersonalizedWelcomeEmail({
     name: participant.name,
+    goal: quizAnswers?.goal ?? "general_health",
     goalRealism,
     primaryFocus: participant.primary_focus as PrimaryFocus,
+    trainingTrack: quizAnswers ? getTrainingTrack(quizAnswers) : "home",
     hasLimitations: participant.has_limitations,
   });
 
@@ -154,10 +162,21 @@ export async function sendBroadcastAction(
     return { status: "success", message: "Няма участнички с избрания статус." };
   }
 
+  // Participants from the phone-only intake have no email on file — they
+  // can only be reached via Viber/phone, not this broadcast tool.
+  const emailable = participants.filter(
+    (participant): participant is typeof participant & { email: string } => Boolean(participant.email)
+  );
+  const skipped = participants.length - emailable.length;
+
+  if (emailable.length === 0) {
+    return { status: "success", message: "Няма участнички с имейл в тази група — всички са само с телефон." };
+  }
+
   const resend = getResendClient();
   let sentCount = 0;
 
-  for (const participant of participants) {
+  for (const participant of emailable) {
     const firstName = participant.name.trim().split(/\s+/)[0] || participant.name;
     const text = `Здравей, ${firstName}!\n\n${body}`;
 
@@ -179,5 +198,6 @@ export async function sendBroadcastAction(
     }
   }
 
-  return { status: "success", message: `Изпратени имейли: ${sentCount} от ${participants.length}.` };
+  const skippedNote = skipped > 0 ? ` (${skipped} без имейл, пропуснати)` : "";
+  return { status: "success", message: `Изпратени имейли: ${sentCount} от ${emailable.length}${skippedNote}.` };
 }

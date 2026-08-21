@@ -56,3 +56,38 @@ describe("client auth validation", () => {
     ).toBe(false);
   });
 });
+
+describe("clientRegisterSchema phone normalisation", () => {
+  function register(phone: string) {
+    return clientRegisterSchema.safeParse({
+      name: "Тест Тестов",
+      email: "test@example.com",
+      phone,
+      consent: "on",
+      password: "correct-horse-battery-9",
+      confirmPassword: "correct-horse-battery-9",
+    });
+  }
+
+  // The portal reuses registrationSchema.phone, so it inherits the E.164
+  // transform. Migration 0008 adds a CHECK that every stored phone is
+  // canonical, which makes that inheritance load-bearing: if a refactor ever
+  // gives the portal its own phone rule, portal sign-ups start failing at the
+  // database instead of at validation. This test fails first.
+  it("stores the national form as +359", () => {
+    const result = register("0888123456");
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.phone).toBe("+359888123456");
+  });
+
+  it("collapses spacing and the 00 prefix to the same value", () => {
+    for (const spelling of ["0888 123 456", "+359 888 123 456", "00359888123456"]) {
+      const result = register(spelling);
+      expect(result.success && result.data.phone).toBe("+359888123456");
+    }
+  });
+
+  it("rejects a number that is not Bulgarian", () => {
+    expect(register("+49888123456").success).toBe(false);
+  });
+});

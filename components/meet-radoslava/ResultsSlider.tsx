@@ -71,7 +71,7 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             </div>
           </div>
 
-          <p className="line-clamp-4 text-white sm:line-clamp-none">&ldquo;{client.quote}&rdquo;</p>
+          <p className="text-sm leading-relaxed text-white sm:text-base">&ldquo;{client.quote}&rdquo;</p>
           <p className="font-semibold text-white">{client.name}</p>
         </div>
 

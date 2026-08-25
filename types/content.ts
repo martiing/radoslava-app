@@ -108,12 +108,6 @@ export interface SiteConfig {
       disclaimer: string;
     };
   };
-  limitedSpots: {
-    heading: string;
-    reasonText: string;
-    registrationDeadline: string;
-    ctaLabel: string;
-  };
   registration: {
     heading: string;
     intro: string;

@@ -33,8 +33,8 @@ export const siteConfig = {
       "Четири седмици с ясен план за хранене, тренировки, проследяване и подкрепа от Радослава и нейния екип.",
     ctaPrimaryLabel: "Запази своето място",
     ctaSecondaryLabel: "Виж как работи предизвикателството",
-    startDate: "1 септември 2026",
-    registrationDeadline: "25 август 2026",
+    startDate: "15 септември 2026",
+    registrationDeadline: "15 септември 2026",
     price: "65 €",
     photoSrc: "/images/hero.jpg",
   },
@@ -158,13 +158,6 @@ export const siteConfig = {
       ],
       disclaimer: "Индивидуалните резултати могат да се различават.",
     },
-  },
-  limitedSpots: {
-    heading: "Местата са ограничени",
-    reasonText:
-      "За да можем Радослава и екипът да отделят достатъчно внимание на всяка участничка, местата в тази група са ограничени.",
-    registrationDeadline: "Записването приключва на 25 август 2026.",
-    ctaLabel: "Искам да запазя своето място",
   },
   registration: {
     heading: "Запази своето място",

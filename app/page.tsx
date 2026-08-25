@@ -6,7 +6,6 @@ import { Hero } from "@/components/sections/Hero";
 import { OfferBlock } from "@/components/sections/OfferBlock";
 import { FitCheck } from "@/components/sections/FitCheck";
 import { MeetRadoslava } from "@/components/sections/MeetRadoslava";
-import { LimitedSpots } from "@/components/sections/LimitedSpots";
 import { RegistrationForm } from "@/components/sections/RegistrationForm";
 import { FAQ } from "@/components/sections/FAQ";
 
@@ -27,7 +26,6 @@ export default async function Home() {
         <FitCheck />
         <OfferBlock />
         <MeetRadoslava />
-        <LimitedSpots />
         <RegistrationForm />
         <FAQ />
       </main>

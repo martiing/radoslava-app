@@ -59,7 +59,7 @@ export const PLAN_PAGE_COPY = {
 
 export const PROGRAM_CONTENT: Record<string, ProgramContent> = {
   [DEFAULT_PROGRAM_SLUG]: {
-    startDateIso: "2026-09-01",
+    startDateIso: "2026-09-15",
 
     weekThemes: {
       1: {

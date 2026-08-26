@@ -255,6 +255,7 @@ export const siteConfig = {
   },
   viberContact: {
     phoneDisplay: "0896 273 376",
+    phoneE164: "+359896273376",
     deepLink: "viber://chat?number=%2B359896273376",
   },
   footer: {

@@ -152,7 +152,9 @@ export interface SiteConfig {
   viberContact: {
     /** Local display format, e.g. "0896 273 376". */
     phoneDisplay: string;
-    /** viber://chat deep link straight to Radoslava's contact. */
+    /** International format used when copying the contact, e.g. "+359896273376". */
+    phoneE164: string;
+    /** Best-effort viber:// link; some browsers and personal accounts do not support it. */
     deepLink: string;
   };
   footer: {

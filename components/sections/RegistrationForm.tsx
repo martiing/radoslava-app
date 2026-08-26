@@ -386,6 +386,13 @@ export function RegistrationForm() {
             <Button href={viberContact.deepLink} className="mt-2 w-full sm:w-auto">
               {registration.viberButtonLabel}
             </Button>
+            <p className="max-w-md text-sm leading-relaxed text-muted">
+              Ако Viber не се отвори автоматично, отвори приложението и потърси номера{" "}
+              <span className="select-all whitespace-nowrap font-semibold text-foreground">
+                {viberContact.phoneDisplay}
+              </span>
+              .
+            </p>
             <Button type="button" variant="secondary" onClick={closeDialogFromUi} className="w-full sm:w-auto">
               {registration.closeLabel}
             </Button>

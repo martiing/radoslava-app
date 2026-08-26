@@ -37,7 +37,19 @@ export function Button(props: ButtonAsLink | ButtonAsButton) {
   const classes = cn(baseClasses, variantClasses[variant], className);
 
   if (props.href) {
+    const isInternalLink = props.href.startsWith("/") || props.href.startsWith("#");
     const opensRegistrationDialog = props.href.endsWith("#registration");
+
+    // App protocols such as viber:, tel: and mailto: must be handled by the
+    // browser directly. Passing them through Next.js navigation can prevent
+    // the operating system from handing the link to the installed app.
+    if (!isInternalLink) {
+      return (
+        <a href={props.href} className={classes} target={props.target} rel={props.rel}>
+          {children}
+        </a>
+      );
+    }
 
     return (
       <Link

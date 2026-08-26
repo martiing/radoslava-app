@@ -105,9 +105,19 @@ export function RegistrationForm() {
   const [consent, setConsent] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const [viberCopyState, setViberCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [turnstileState, setTurnstileState] = useState<
     TurnstileWidgetState | "configuration" | "not-required"
   >(initialTurnstileState);
+
+  async function copyViberNumber() {
+    try {
+      await navigator.clipboard.writeText(viberContact.phoneE164);
+      setViberCopyState("copied");
+    } catch {
+      setViberCopyState("error");
+    }
+  }
 
   const showDialog = useCallback(() => {
     const dialog = dialogRef.current;
@@ -383,16 +393,39 @@ export function RegistrationForm() {
               <p className="text-2xl font-semibold text-foreground">{registration.successHeading}</p>
               <p className="mt-3 max-w-md text-base leading-relaxed text-muted">{registration.successBody}</p>
             </div>
-            <Button href={viberContact.deepLink} className="mt-2 w-full sm:w-auto">
-              {registration.viberButtonLabel}
+            <Button type="button" onClick={() => void copyViberNumber()} className="mt-2 w-full sm:w-auto">
+              {viberCopyState === "copied" ? "Номерът е копиран" : "Копирай номера за Viber"}
             </Button>
-            <p className="max-w-md text-sm leading-relaxed text-muted">
-              Ако Viber не се отвори автоматично, отвори приложението и потърси номера{" "}
-              <span className="select-all whitespace-nowrap font-semibold text-foreground">
-                {viberContact.phoneDisplay}
-              </span>
-              .
+            <p aria-live="polite" className="max-w-md text-sm leading-relaxed text-muted">
+              {viberCopyState === "copied" ? (
+                <>
+                  Копирано:{" "}
+                  <span className="select-all whitespace-nowrap font-semibold text-foreground">
+                    {viberContact.phoneE164}
+                  </span>
+                  . Отвори Viber → Още → Добави контакт и постави номера.
+                </>
+              ) : viberCopyState === "error" ? (
+                <>
+                  Копирането не се получи. Задръж върху номера и го копирай ръчно:{" "}
+                  <span className="select-all whitespace-nowrap font-semibold text-foreground">
+                    {viberContact.phoneE164}
+                  </span>
+                  .
+                </>
+              ) : (
+                <>
+                  Надеждният начин е да добавиш Радослава като контакт с номер{" "}
+                  <span className="select-all whitespace-nowrap font-semibold text-foreground">
+                    {viberContact.phoneE164}
+                  </span>
+                  .
+                </>
+              )}
             </p>
+            <Button href={viberContact.deepLink} variant="secondary" className="w-full sm:w-auto">
+              Опитай да отвориш Viber
+            </Button>
             <Button type="button" variant="secondary" onClick={closeDialogFromUi} className="w-full sm:w-auto">
               {registration.closeLabel}
             </Button>

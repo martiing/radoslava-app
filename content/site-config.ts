@@ -264,7 +264,7 @@ export const siteConfig = {
     // Keep the link hidden until Radoslava's exact public profile is confirmed.
     instagramUrl: null,
     privacyPolicyHref: "/politika-za-poveritelnost",
-    privacyPolicyVersion: "2026-07-27",
+    privacyPolicyVersion: "2026-08-27",
     termsHref: "/obshti-usloviya",
     medicalDisclaimer:
       "Тази програма не замества консултация с медицински специалист. При здравословни ограничения се препоръчва предварителна консултация с лекар.",

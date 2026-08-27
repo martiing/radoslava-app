@@ -45,6 +45,7 @@ import {
   validateRegistrationContact,
   type RegistrationContactErrors,
 } from "@/lib/validation/registration-contact";
+import { isTurnstileRequired } from "@/lib/security/turnstile-config";
 
 const initialState: RegisterFormState = { status: "idle" };
 const REGISTRATION_HASH = "#registration";
@@ -66,7 +67,7 @@ const LEVEL_OPTIONS_WITH_ICONS = INTAKE_LEVEL_OPTIONS.map((option) => ({
 // Production must fail closed when Turnstile is missing. Local development
 // stays usable without Cloudflare credentials.
 const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-const turnstileRequired = process.env.NODE_ENV === "production";
+const turnstileRequired = isTurnstileRequired(process.env.NODE_ENV);
 const initialTurnstileState:
   | TurnstileWidgetState
   | "configuration"
@@ -91,6 +92,7 @@ export function RegistrationForm() {
 
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const stepContentRef = useRef<HTMLDivElement | null>(null);
   const previousOverflowRef = useRef("");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -213,6 +215,12 @@ export function RegistrationForm() {
 
   useEffect(() => {
     if (!isDialogOpen || isSuccess) return;
+
+    // Mobile keyboards often scroll the current step to the focused field.
+    // Reset only the dialog's content when advancing so the next question and
+    // its progress indicator are visible without moving the landing page.
+    if (stepContentRef.current) stepContentRef.current.scrollTop = 0;
+
     const frame = window.requestAnimationFrame(() => {
       document.getElementById("registration-step-heading")?.focus({ preventScroll: true });
     });
@@ -362,12 +370,12 @@ export function RegistrationForm() {
           if (event.target === event.currentTarget) closeDialogFromUi();
         }}
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-surface/95 px-6 pb-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:px-8 sm:pt-6">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-surface/95 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:gap-4 sm:px-8 sm:pt-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-hover">
               {siteConfig.hero.eyebrow}
             </p>
-            <h2 id="registration-dialog-title" className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
+            <h2 id="registration-dialog-title" className="mt-1 font-display text-[1.35rem] font-semibold leading-tight sm:text-3xl">
               {registration.dialogTitle}
             </h2>
             <p id="registration-dialog-intro" className="mt-1 text-sm text-muted">
@@ -385,7 +393,7 @@ export function RegistrationForm() {
         </div>
 
         {isSuccess ? (
-          <div role="status" className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-10 text-center sm:px-10">
+          <div role="status" className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-4 py-8 text-center sm:px-10 sm:py-10">
             <span className="animate-fade-up flex h-16 w-16 items-center justify-center rounded-full bg-lime/30 text-accent-hover">
               <Check aria-hidden="true" className="h-8 w-8" strokeWidth={2.5} />
             </span>
@@ -448,7 +456,7 @@ export function RegistrationForm() {
               </>
             )}
 
-            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 sm:px-8">
+            <div ref={stepContentRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-8 sm:py-6">
               <div className="mb-6" aria-label={`Стъпка ${stepIndex + 1} от ${registration.dialogSteps.length}`}>
                 <div className="flex gap-2" aria-hidden="true">
                   {registration.dialogSteps.map((dialogStep, index) => (
@@ -621,7 +629,7 @@ export function RegistrationForm() {
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:px-8 sm:pb-5">
+            <div className="flex items-center justify-between gap-2 border-t border-border bg-surface/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur sm:gap-3 sm:px-8 sm:pb-5">
               {stepIndex > 0 ? (
                 <Button
                   type="button"

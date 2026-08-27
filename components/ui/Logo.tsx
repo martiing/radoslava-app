@@ -26,7 +26,7 @@ export function Logo({ shortName, fullName, mobileName, className, tone = "defau
           tone === "inverted" ? "text-white/70" : "text-muted"
         )}
       >
-        <span className="sm:hidden">{mobileName ?? fullName}</span>
+        <span className="max-[349px]:hidden sm:hidden">{mobileName ?? fullName}</span>
         <span className="hidden sm:inline">{fullName}</span>
       </span>
     </span>

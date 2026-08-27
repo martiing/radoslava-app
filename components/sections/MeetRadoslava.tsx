@@ -24,8 +24,8 @@ export function MeetRadoslava() {
         </div>
       </RevealOnScroll>
 
-      <div className="mx-auto mt-8 grid max-w-5xl items-start gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-14">
-        <RevealOnScroll delayMs={80}>
+      <div className="mx-auto mt-8 grid min-w-0 max-w-5xl items-start gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-14">
+        <RevealOnScroll delayMs={80} className="min-w-0">
           <PlaceholderImage
             src={meetRadoslava.photoSrc}
             alt="Радослава"
@@ -40,8 +40,8 @@ export function MeetRadoslava() {
           <p className="mt-6 hidden text-base leading-relaxed text-white/70 sm:block">{meetRadoslava.bio}</p>
 
           <div className="mt-5 border-t border-white/10 pt-5 sm:mt-6 sm:pt-6">
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-white">
-              <Award aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span className="flex w-full max-w-full items-start gap-2 rounded-2xl bg-accent px-4 py-2 text-left text-sm font-semibold leading-snug text-white sm:inline-flex sm:w-auto sm:items-center sm:rounded-full sm:py-1.5">
+              <Award aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 sm:mt-0" strokeWidth={2} />
               {meetRadoslava.credentialBadge}
             </span>
 
@@ -56,7 +56,7 @@ export function MeetRadoslava() {
           </div>
         </RevealOnScroll>
 
-        <RevealOnScroll delayMs={140}>
+        <RevealOnScroll delayMs={140} className="min-w-0">
           <ResultsSlider clients={meetRadoslava.results.clients} disclaimer={meetRadoslava.results.disclaimer} />
         </RevealOnScroll>
       </div>

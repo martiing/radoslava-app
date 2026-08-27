@@ -45,6 +45,7 @@ import {
   validateRegistrationContact,
   type RegistrationContactErrors,
 } from "@/lib/validation/registration-contact";
+import { isTurnstileRequired } from "@/lib/security/turnstile-config";
 
 const initialState: RegisterFormState = { status: "idle" };
 const REGISTRATION_HASH = "#registration";
@@ -66,7 +67,7 @@ const LEVEL_OPTIONS_WITH_ICONS = INTAKE_LEVEL_OPTIONS.map((option) => ({
 // Production must fail closed when Turnstile is missing. Local development
 // stays usable without Cloudflare credentials.
 const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-const turnstileRequired = process.env.NODE_ENV === "production";
+const turnstileRequired = isTurnstileRequired(process.env.NODE_ENV);
 const initialTurnstileState:
   | TurnstileWidgetState
   | "configuration"

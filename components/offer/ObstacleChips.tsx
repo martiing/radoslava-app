@@ -22,7 +22,7 @@ export function ObstacleChips({ chips, chipsLabel, defaultPanelText }: ObstacleC
       <div
         role="group"
         aria-label={chipsLabel}
-        className="flex w-full snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0"
+        className="flex w-full flex-wrap justify-center gap-3"
       >
         {chips.map((chip) => {
           const isSelected = chip.id === selectedId;
@@ -33,7 +33,7 @@ export function ObstacleChips({ chips, chipsLabel, defaultPanelText }: ObstacleC
               aria-pressed={isSelected}
               onClick={() => setSelectedId(chip.id)}
               className={cn(
-                "min-h-11 shrink-0 snap-start rounded-full border px-5 py-2.5 text-sm font-semibold transition-all duration-300",
+                "min-h-11 max-w-full touch-manipulation whitespace-normal rounded-full border px-4 py-2.5 text-center text-sm font-semibold leading-snug transition-all duration-300 sm:px-5",
                 isSelected
                   ? "border-accent-bright bg-accent-bright/90 text-white shadow-md shadow-accent-bright/20"
                   : "border-white/15 bg-white/5 text-white/80 hover:-translate-y-0.5 hover:border-accent-bright/30 hover:bg-white/10"

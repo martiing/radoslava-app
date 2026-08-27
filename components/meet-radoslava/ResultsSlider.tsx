@@ -41,13 +41,13 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
   }
 
   return (
-    <div onKeyDown={handleKeyDown}>
+    <div className="min-w-0" onKeyDown={handleKeyDown}>
       <div
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 sm:p-8"
+        className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm transition-all duration-300 sm:p-8"
       >
-        <div key={index} className="animate-fade-up flex flex-col gap-5">
+        <div key={index} className="animate-fade-up flex min-w-0 flex-col gap-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <PlaceholderImage
@@ -71,11 +71,11 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             </div>
           </div>
 
-          <p className="text-sm leading-relaxed text-white sm:text-base">&ldquo;{client.quote}&rdquo;</p>
+          <p className="min-w-0 break-words text-sm leading-relaxed text-white sm:text-base">&ldquo;{client.quote}&rdquo;</p>
           <p className="font-semibold text-white">{client.name}</p>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-4">
+        <div className="mt-6 flex min-w-0 items-center justify-between gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => goTo(index - 1)}
@@ -85,7 +85,11 @@ export function ResultsSlider({ clients, disclaimer }: ResultsSliderProps) {
             <ChevronLeft aria-hidden="true" className="h-5 w-5" strokeWidth={1.75} />
           </button>
 
-          <div role="tablist" aria-label="Резултати на клиентки" className="flex items-center gap-2">
+          <p className="text-sm font-semibold tabular-nums text-white/70 sm:hidden" aria-live="polite">
+            {index + 1} / {clients.length}
+          </p>
+
+          <div role="tablist" aria-label="Резултати на клиентки" className="hidden items-center gap-2 sm:flex">
             {clients.map((dotClient, dotIndex) => (
               <button
                 key={dotClient.name}
